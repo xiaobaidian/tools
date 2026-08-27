@@ -120,7 +120,7 @@ function render(){
   }
   grid.innerHTML = list.map(t=>{
     const ty = TYPE[t.type]||TYPE.tool;
-    const link = "./" + t.folder + (t.type==="web" ? "/" : "/");
+    const link = "./" + t.folder + (t.type==="web" ? "/" : "/README.md");
     const tags = (t.tags||[]).map(x=>'<span class="tag">#'+esc(x)+'</span>').join("");
     return `<div class="card">
       <div class="top">
