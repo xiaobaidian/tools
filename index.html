@@ -175,7 +175,7 @@ function render(){
   const catalog = document.getElementById("catalog");
   const groups = {};
   TOOLS.forEach(t=>{
-    const c = (t.category||"其他").replace(/[📧🖼️📄🛠️]\s*/g,"").trim();
+    const c = (t.category||"其他").replace(/^[^一-鿿A-Za-z]+/,"").trim();
     (groups[c] = groups[c]||[]).push(t);
   });
   let html = "";
