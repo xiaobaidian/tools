@@ -32,7 +32,7 @@
     border-radius:999px;background:rgba(255,255,255,.04);transition:.2s;white-space:nowrap}
   .links a:hover{border-color:var(--acc);color:#fff;transform:translateY(-2px)}
   .links{display:flex;gap:10px;flex-wrap:wrap}
-  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 26px}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 18px}
   .search{flex:1;min-width:220px;display:flex;align-items:center;gap:8px;background:var(--card);
     border:1px solid var(--line);border-radius:12px;padding:10px 14px;backdrop-filter:blur(8px)}
   .search input{flex:1;background:transparent;border:0;outline:0;color:var(--fg);font-size:14px}
@@ -42,6 +42,11 @@
     padding:8px 14px;border-radius:999px;font-size:13px;transition:.2s}
   .chip:hover{color:#fff}
   .chip.active{background:linear-gradient(90deg,var(--acc),#9aa6ff);color:#0b0e1a;border-color:transparent;font-weight:600}
+  .cat{margin:26px 0 6px}
+  .cat-h{font-size:18px;font-weight:700;margin:0 0 14px;display:flex;align-items:center;gap:10px;
+    padding-left:4px;border-left:3px solid var(--acc)}
+  .cat-n{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);border:1px solid var(--line);
+    padding:1px 9px;border-radius:999px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
   .card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;
     padding:22px;backdrop-filter:blur(10px);box-shadow:var(--shadow);transition:transform .22s,border-color .22s;overflow:hidden}
@@ -85,14 +90,10 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input id="q" type="text" placeholder="搜索工具名称 / 描述 / 标签…" autocomplete="off"/>
     </label>
-    <div class="chips" id="chips">
-      <span class="chip active" data-f="all">全部</span>
-      <span class="chip" data-f="web">🌐 网页</span>
-      <span class="chip" data-f="tool">⚙️ 工具</span>
-    </div>
+    <div class="chips" id="chips"></div>
   </div>
 
-  <div class="grid" id="grid"></div>
+  <div class="grid" id="grid" style="display:block"></div>
 
   <footer>
     <span>仓库：<a href="https://github.com/xiaobaidian/tools">github.com/xiaobaidian/tools</a></span>
@@ -102,53 +103,65 @@
 
 <script>
 const TYPE = {web:{label:"网页",cls:"web"}, tool:{label:"工具",cls:"tool"}};
+const CATEGORIES = ["📧 邮箱管理","🖼️ 图片工具","📄 文档工具","🛠️ 仓库维护"];
 let TOOLS = [], filter = "all", query = "";
 
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
-
+function cardHtml(t){
+  const ty = TYPE[t.type]||TYPE.tool;
+  const link = "./" + t.folder + (t.type==="web" ? "/" : "/README.md");
+  const tags = (t.tags||[]).map(x=>'<span class="tag">#'+esc(x)+'</span>').join("");
+  return `<div class="card">
+    <div class="top">
+      <span class="emoji">${esc(t.emoji||"🧰")}</span>
+      <h3>${esc(t.name)}</h3>
+      <span class="badge ${ty.cls}">${ty.label}</span>
+    </div>
+    <p>${esc(t.desc)||"——"}</p>
+    <div class="tags">${tags}</div>
+    <a class="open" href="${link}" target="_blank" rel="noopener">打开 →</a>
+  </div>`;
+}
 function render(){
   const grid = document.getElementById("grid");
   const q = query.trim().toLowerCase();
-  const list = TOOLS.filter(t=>{
-    if(filter!=="all" && t.type!==filter) return false;
+  const matched = TOOLS.filter(t=>{
+    if(filter!=="all" && t.category!==filter) return false;
     if(!q) return true;
     return (t.name+" "+(t.desc||"")+" "+(t.tags||[]).join(" ")).toLowerCase().includes(q);
   });
-  if(!list.length){
+  if(!matched.length){
     grid.innerHTML = '<div class="empty"><div class="big">🔧</div>还没有匹配的工具～ 让小微给你搓一个？</div>';
     return;
   }
-  grid.innerHTML = list.map(t=>{
-    const ty = TYPE[t.type]||TYPE.tool;
-    const link = "./" + t.folder + (t.type==="web" ? "/" : "/README.md");
-    const tags = (t.tags||[]).map(x=>'<span class="tag">#'+esc(x)+'</span>').join("");
-    return `<div class="card">
-      <div class="top">
-        <span class="emoji">${esc(t.emoji||"🧰")}</span>
-        <h3>${esc(t.name)}</h3>
-        <span class="badge ${ty.cls}">${ty.label}</span>
-      </div>
-      <p>${esc(t.desc)||"——"}</p>
-      <div class="tags">${tags}</div>
-      <a class="open" href="${link}" target="_blank" rel="noopener">打开 →</a>
-    </div>`;
-  }).join("");
+  const cats = CATEGORIES.filter(c=> matched.some(t=>t.category===c));
+  for(const t of matched) if(!cats.includes(t.category)) cats.push(t.category);
+  let html = "";
+  for(const c of cats){
+    const items = matched.filter(t=>t.category===c);
+    html += `<section class="cat"><div class="cat-h">${esc(c)} <span class="cat-n">${items.length}</span></div>`
+          + `<div class="grid">` + items.map(cardHtml).join("") + `</div></section>`;
+  }
+  grid.innerHTML = html;
 }
-
+function buildChips(){
+  const el = document.getElementById("chips");
+  const all = [["all","全部"]].concat(CATEGORIES.map(c=>[c,c]));
+  el.innerHTML = all.map(([f,l])=>`<span class="chip${f==='all'?' active':''}" data-f="${esc(f)}">${esc(l)}</span>`).join("");
+  el.addEventListener("click", e=>{
+    const c=e.target.closest(".chip"); if(!c) return;
+    document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
+    c.classList.add("active"); filter=c.dataset.f; render();
+  });
+}
 fetch("./tools.json").then(r=>r.json()).then(d=>{
   TOOLS = d.tools||[];
   document.getElementById("meta").textContent = "共 " + TOOLS.length + " 个工具 · 更新于 " + (d.updated||"");
-  render();
+  buildChips(); render();
 }).catch(e=>{
   document.getElementById("grid").innerHTML = '<div class="empty"><div class="big">⚠️</div>清单加载失败：'+e+'</div>';
 });
-
 document.getElementById("q").addEventListener("input", e=>{query=e.target.value;render();});
-document.getElementById("chips").addEventListener("click", e=>{
-  const c=e.target.closest(".chip"); if(!c) return;
-  document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
-  c.classList.add("active"); filter=c.dataset.f; render();
-});
 </script>
 </body>
 </html>
