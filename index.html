@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>小微的工具箱 · Sanfre's Tools</title>
+<style>
+  :root{--bg:#0f1220;--card:#1a1f35;--fg:#e8ecff;--muted:#9aa3c7;--acc:#7c8cff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:radial-gradient(1200px 600px at 80% -10%,#2a2f55 0,var(--bg) 60%);color:var(--fg);min-height:100vh}
+  .wrap{max-width:880px;margin:0 auto;padding:64px 24px}
+  h1{font-size:34px;margin:0 0 6px}
+  .sub{color:var(--muted);margin:0 0 36px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid #2c335a;border-radius:14px;padding:18px;transition:.2s}
+  .card:hover{transform:translateY(-3px);border-color:var(--acc)}
+  .card h3{margin:0 0 6px;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+  .empty{color:var(--muted);font-size:14px;border:1px dashed #2c335a;border-radius:12px;padding:28px;text-align:center}
+  footer{margin-top:48px;color:var(--muted);font-size:12px}
+  a{color:var(--acc);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🛠️ 小微的工具箱</h1>
+  <p class="sub">Sanfre 的个人小工具 & 静态网页集 · 由 WorkBuddy 维护</p>
+  <div class="grid" id="grid">
+    <div class="card"><h3>📁 sites/</h3><p>静态网页都放在这里，每个子文件夹是一个独立站点，推送到 main 后自动上线。</p></div>
+    <div class="card"><h3>📁 tools/</h3><p>非网页的小工具（Python / CLI 脚本等）。</p></div>
+  </div>
+  <div class="empty" style="margin-top:24px">🔧 工具陆续建设中 —— 让小微给你搓一个？</div>
+  <footer>仓库：<a href="https://github.com/xiaobaidian/tools">github.com/xiaobaidian/tools</a> · 门户即 GitHub Pages 自动构建</footer>
+</div>
+</body>
+</html>
