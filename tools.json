@@ -5,7 +5,8 @@
       "name": "邮箱体检 mailbox-audit",
       "emoji": "📊",
       "type": "tool",
-      "folder": "tools/mailbox-audit",
+      "category": "📧 邮箱管理",
+      "folder": "tools/mailbox/audit",
       "desc": "只读拉取 INBOX 邮件头，统计年份/发件人/域名/类型占比",
       "tags": [
         "邮箱",
@@ -18,7 +19,8 @@
       "name": "邮件内容审计 mailbox-content-audit",
       "emoji": "📝",
       "type": "tool",
-      "folder": "tools/mailbox-content-audit",
+      "category": "📧 邮箱管理",
+      "folder": "tools/mailbox/content-audit",
       "desc": "逐封读正文按价值分筐（安全/账单/营销/人际），生成拟删清单",
       "tags": [
         "邮箱",
@@ -31,7 +33,8 @@
       "name": "订阅清理候选 mailbox-cleanup-subscribe",
       "emoji": "🧹",
       "type": "tool",
-      "folder": "tools/mailbox-cleanup-subscribe",
+      "category": "📧 邮箱管理",
+      "folder": "tools/mailbox/cleanup-subscribe",
       "desc": "生成订阅/广告类清理候选清单（只读）",
       "tags": [
         "邮箱",
@@ -43,7 +46,8 @@
       "name": "INBOX 规则清理 mailbox-cleanup",
       "emoji": "🗂️",
       "type": "tool",
-      "folder": "tools/mailbox-cleanup",
+      "category": "📧 邮箱管理",
+      "folder": "tools/mailbox/cleanup",
       "desc": "只留人际/账单/合同offer，其余移到归档夹（可找回）",
       "tags": [
         "邮箱",
@@ -55,8 +59,9 @@
       "name": "SMTP 直发 smtp-notify",
       "emoji": "📧",
       "type": "tool",
-      "folder": "tools/smtp-notify",
-      "desc": "QQ 邮箱 SMTP 直发通知（不依赖连接器）",
+      "category": "📧 邮箱管理",
+      "folder": "tools/mailbox/smtp-notify",
+      "desc": "QQ 邮箱 SMTP 直发通知（不依赖连接器，密钥本地不入仓）",
       "tags": [
         "邮箱",
         "SMTP",
@@ -68,12 +73,41 @@
       "name": "仓库维护 repo-admin",
       "emoji": "🛠️",
       "type": "tool",
+      "category": "🛠️ 仓库维护",
       "folder": "tools/repo-admin",
       "desc": "本仓库自身的维护脚本（初始化/重建门户）",
       "tags": [
         "git",
         "pages",
         "维护"
+      ],
+      "updated": "2026-08-27"
+    },
+    {
+      "name": "A4 图片排版工具",
+      "emoji": "🖼️",
+      "type": "web",
+      "category": "🖼️ 图片工具",
+      "folder": "sites/image/a4-image-layout",
+      "desc": "多图自动排版到 A4（300DPI），本地处理可打印/导出，零依赖",
+      "tags": [
+        "图片",
+        "排版",
+        "打印"
+      ],
+      "updated": "2026-08-27"
+    },
+    {
+      "name": "出库单生成器",
+      "emoji": "📄",
+      "type": "web",
+      "category": "📄 文档工具",
+      "folder": "sites/document/outbound-order",
+      "desc": "Excel/粘贴数据生成出库单（单号/合计），可打印/复制/导出PDF",
+      "tags": [
+        "出库单",
+        "Excel",
+        "仓储"
       ],
       "updated": "2026-08-27"
     }
