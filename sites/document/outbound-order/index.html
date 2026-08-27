@@ -1,0 +1,1490 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>出库单</title>
+    <!-- 引入SheetJS库 -->
+    <script src="./xlsx.full.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #333;
+      }
+      .upload-section {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 40px;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+      }
+      .upload-section:hover {
+        border-color: #3498db;
+        background-color: #f0f8ff;
+      }
+      #fileInput {
+        display: none;
+      }
+      .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+      .btn:hover {
+        background-color: #2980b9;
+      }
+      .result-section {
+        margin-top: 40px;
+      }
+      .result-section h2 {
+        margin-bottom: 20px;
+        color: #333;
+      }
+      .table-container {
+        overflow-x: auto;
+        margin-bottom: 20px;
+      }
+      /* 出库单样式 */
+      .invoice {
+        width: 100%;
+        font-family: Arial, sans-serif;
+      }
+      .invoice-header {
+        text-align: center;
+        margin-bottom: 10px;
+      }
+      .invoice-header h2 {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .invoice-info {
+        margin-bottom: 10px;
+        font-size: 12px;
+      }
+      .invoice-info table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .invoice-info td {
+        padding: 5px;
+        border: none;
+      }
+      .invoice-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        margin-bottom: 20px;
+      }
+      .invoice-table th,
+      .invoice-table td {
+        padding: 5px 8px;
+        border: 1px solid #000;
+        text-align: left;
+        white-space: nowrap;
+      }
+      /* 设置列宽 */
+      /* 生产厂商列（第4列）- 窄一点，够显示四个字 */
+      .invoice-table th:nth-child(4),
+      .invoice-table td:nth-child(4) {
+        min-width: 60px;
+      }
+      /* 批号列（第5列）- 较宽以显示完整批号 */
+      .invoice-table th:nth-child(5),
+      .invoice-table td:nth-child(5) {
+        min-width: 100px;
+      }
+      /* 数量、单价、金额列（第8-10列）- 较窄 */
+      .invoice-table th:nth-child(8),
+      .invoice-table td:nth-child(8),
+      .invoice-table th:nth-child(9),
+      .invoice-table td:nth-child(9),
+      .invoice-table th:nth-child(10),
+      .invoice-table td:nth-child(10) {
+        min-width: 50px;
+        text-align: right;
+      }
+      .invoice-table th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+      .invoice-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+      .invoice-footer {
+        font-size: 12px;
+        margin-top: 15px;
+      }
+      .invoice-footer table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .invoice-footer td {
+        padding: 5px;
+        border: none;
+        vertical-align: top;
+      }
+      .print-btn {
+        margin-top: 20px;
+        background-color: #27ae60;
+      }
+      .print-btn:hover {
+        background-color: #229954;
+      }
+      @media print {
+        /* 隐藏浏览器默认的页眉页脚 */
+        @page {
+          size: A4 landscape;
+          margin: 5mm;
+        }
+        
+        /* 全局样式重置 */
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          padding: 0;
+          background-color: white;
+          font-family: Arial, sans-serif;
+        }
+        
+        .container {
+          box-shadow: none;
+          padding: 0;
+        }
+        
+        .upload-section,
+        .result-section h2,
+        .print-btn {
+          display: none;
+        }
+        
+        .table-container {
+          overflow: visible;
+        }
+        
+        .invoice {
+          width: 100%;
+          margin: 0 auto;
+        }
+        
+        .invoice-table {
+          width: 100%;
+          font-size: 10px;
+          border-collapse: collapse;
+          table-layout: fixed;
+        }
+        
+        .invoice-table th,
+        .invoice-table td {
+          padding: 3px 5px;
+          border: 1px solid #000;
+          text-align: left;
+          word-wrap: break-word;
+        }
+        
+        .invoice-table th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+        }
+        
+        .invoice-table tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+        
+        /* 设置列宽，确保所有列都能显示 */
+        .invoice-table th:nth-child(1),
+        .invoice-table td:nth-child(1) {
+          width: 35px;
+        }
+        .invoice-table th:nth-child(2),
+        .invoice-table td:nth-child(2) {
+          width: 150px;
+        }
+        .invoice-table th:nth-child(3),
+        .invoice-table td:nth-child(3) {
+          width: 80px;
+        }
+        .invoice-table th:nth-child(4),
+        .invoice-table td:nth-child(4) {
+          width: 55px;
+        }
+        .invoice-table th:nth-child(5),
+        .invoice-table td:nth-child(5) {
+          width: 100px;
+        }
+        .invoice-table th:nth-child(6),
+        .invoice-table td:nth-child(6) {
+          width: 70px;
+        }
+        .invoice-table th:nth-child(7),
+        .invoice-table td:nth-child(7) {
+          width: 35px;
+        }
+        .invoice-table th:nth-child(8),
+        .invoice-table td:nth-child(8) {
+          width: 40px;
+        }
+        .invoice-table th:nth-child(9),
+        .invoice-table td:nth-child(9) {
+          width: 40px;
+        }
+        .invoice-table th:nth-child(10),
+        .invoice-table td:nth-child(10) {
+          width: 45px;
+        }
+        .invoice-table th:nth-child(11),
+        .invoice-table td:nth-child(11) {
+          width: 120px;
+        }
+        .invoice-table th:nth-child(12),
+        .invoice-table td:nth-child(12) {
+          width: 60px;
+        }
+        .invoice-table th:nth-child(13),
+        .invoice-table td:nth-child(13) {
+          width: 60px;
+        }
+        
+        /* 打印时隐藏输入框边框和placeholder */
+        input {
+          border: none !important;
+          outline: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background: transparent !important;
+        }
+        /* 打印时标题输入框使用较大字号 */
+        .invoice-header input {
+          font-size: 22px !important;
+          font-weight: bold !important;
+        }
+        /* 其他输入框使用正常字号 */
+        .invoice-info input,
+        .invoice-table input {
+          font-size: 10px !important;
+        }
+        
+        input::placeholder {
+          color: transparent !important;
+        }
+        
+        /* 确保没有其他元素干扰 */
+        header, footer, nav, aside {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 style="display: none;">出库单</h1>
+
+      <!-- 上传区域 -->
+      <div class="upload-section">
+        <h2>上传Excel文件或粘贴数据源</h2>
+        <p>请选择要转换的Excel文件，或直接粘贴数据源到下方文本框</p>
+        <input type="file" id="fileInput" accept=".xls,.xlsx" />
+        <label for="fileInput" class="btn">选择文件</label>
+        <p id="fileInfo" style="margin-top: 10px; color: #666"></p>
+        
+        <!-- 数据源粘贴区域 -->
+        <div style="margin-top: 20px; text-align: left;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold;">数据源（直接粘贴）:</label>
+          <textarea 
+            id="dataSource" 
+            style="width: 100%; height: 150px; padding: 10px; border: 2px dashed #ddd; border-radius: 4px; font-family: monospace; font-size: 12px; resize: vertical;"
+            placeholder="请直接粘贴数据源，每行一个字段..."></textarea>
+          <button 
+            id="parseDataBtn" 
+            class="btn" 
+            style="margin-top: 10px; background-color: #e74c3c;"
+            onclick="parseDataSource()">
+            解析数据源
+          </button>
+        </div>
+      </div>
+
+      <!-- 结果区域 -->
+      <div class="result-section">
+        <h2 style="display: none;">转换结果</h2>
+        <div class="table-container" id="tableContainer">
+          <p>请上传Excel文件</p>
+        </div>
+        <button
+          class="btn print-btn"
+          id="printBtn"
+          onclick="exportToPDF()"
+          disabled
+        >
+          打印
+        </button>
+        <button
+          class="btn print-btn"
+          id="copyBtn"
+          onclick="copyToClipboard()"
+          disabled
+          style="margin-left: 10px; background-color: #9b59b6;"
+        >
+          复制到剪贴板
+        </button>
+        <p id="copyStatus" style="margin-top: 10px; color: #666; display: none;"></p>
+      </div>
+    </div>
+
+    <script>
+      // ==================== 配置区域 - 方便修改 ====================
+      // 厂家名称关键词列表（如果厂家名称包含列表中的关键词，就只显示该关键词）
+      // 注意：按匹配优先级排序，前面的优先匹配
+      const MANUFACTURER_KEYWORDS = [
+        '波科',
+        '埃普特',
+        '微创',
+        '康蒂思',
+        '强生',
+        '美敦力',
+        '雅培',
+        '史赛克',
+        '柯惠',
+        '泰科',
+        '金瑞凯利',
+        '玮沐',
+        '麦瑞通',
+        '小鱼',
+        '业聚',
+        '安特',
+        '瑛泰',
+        '巴泰',
+        '励楷',
+        '归创通桥',
+        '爱琅',
+        '鼎科',
+        '璞慧',
+        '泰杰伟业',
+        '艾力康',
+        '赛诺',
+        '禾木',
+        '百多力',
+        '泰利福',
+        '心诺普',
+        '乐普',
+        '通桥',
+        '八光',
+        '泰尔茂',
+        '华瑭',
+        // 在此添加更多厂家关键词...
+      ];
+
+      // 型号关键词列表（如果型号包含列表中的关键词，就只显示该关键词）
+      const MODEL_KEYWORDS = [
+        '12673',
+        '466-C210F',
+        'MCXS1815BP',
+        'EX700',
+        'EX500',
+        'Gelfoam710',
+        'Gelfoam560',
+        'Gelfoam350',
+        'Gelfoam150',
+        'PVA-150',
+        'PVA-350',
+        'PVA-560',
+        'PVA-710',
+        'LA6JR35',
+        'LA6JR40',
+        'LA6JL35',
+        'LA6JL40',
+        'LA6EBU35',
+        'LA6EBU30',
+        'LA7EBU35',
+        'LA7EBU30',
+        'LA6SAL10',
+        'LA6SAL75',
+        'LA6AL10',
+        'LA6AL75',
+        'JHLD-2513',
+        'JHLD-2519',
+        'JHLD-2522',
+        'JHLD-2528',
+        'JHLD-2533',
+        'JHLD-2538',
+        'JHLD-2713',
+        'JHLD-2719',
+        'JHLD-2722',
+        'JHLD-2728',
+        'JHLD-2733',
+        'JHLD-2738',
+        'JHLD-3013',
+        'JHLD-3019',
+        'JHLD-3022',
+        'JHLD-3028',
+        'JHLD-3033',
+        'JHLD-3038',
+        'JHLD-3513',
+        'JHLD-3519',
+        'JHLD-3522',
+        'JHLD-3528',
+        'JHLD-3533',
+        'JHLD-3538',
+        'JHLD-4013',
+        'JHLD-4019',
+        'JHLD-4022',
+        'JHLD-4028',
+        'JHLD-4033',
+        'JHLD-4038',
+        'HG353AF',
+        'Enticos 4 SR',
+        'Enticos 4 D',
+        'Evity 6 DR-T',
+        'MC-PE27131',
+        '534642T',
+        'GW351JF',
+        '534618T',
+        '534619T',
+        '534620T',
+        '534621T',
+        // 在此添加更多型号关键词...
+      ];
+
+      // 商品名称关键词列表（如果商品名称包含列表中的关键词，就只显示该关键词）
+      const PRODUCT_KEYWORDS = [
+        '静脉支架',
+        // 在此添加更多商品名称关键词...
+      ];
+      // ============================================================
+
+      // ==================== 数据简化工具函数 ====================
+      /**
+       * 通用简化函数：检测字符串是否包含关键词列表中的词，匹配到则返回该关键词
+       * @param {string} input - 输入字符串
+       * @param {string[]} keywords - 关键词列表（按优先级排序）
+       * @returns {string} - 简化后的字符串
+       */
+      function simplifyByKeyword(input, keywords) {
+        if (!input) return '';
+        const str = input.toString().trim();
+        
+        // 按顺序检查关键词，先匹配到的优先返回
+        for (const keyword of keywords) {
+          if (str.includes(keyword)) {
+            return keyword;
+          }
+        }
+        
+        // 没有匹配到关键词，返回原始字符串
+        return str;
+      }
+
+      // 简化型号
+      function simplifyModel(model) {
+        return simplifyByKeyword(model, MODEL_KEYWORDS);
+      }
+
+      // 简化生产厂家名称
+      function simplifyManufacturer(manufacturer) {
+        return simplifyByKeyword(manufacturer, MANUFACTURER_KEYWORDS);
+      }
+
+      // 简化商品名称
+      function simplifyProductName(productName) {
+        return simplifyByKeyword(productName, PRODUCT_KEYWORDS);
+      }
+      // ============================================================
+
+      // 获取下一个出库单号
+      function getNextInvoiceNumber() {
+        const prefix = 'XS';
+        const startNumber = 767;
+        const padding = 12;
+        
+        // 从localStorage获取当前编号
+        let currentNumber = localStorage.getItem('invoiceNumber');
+        if (!currentNumber) {
+          currentNumber = startNumber;
+        } else {
+          currentNumber = parseInt(currentNumber) + 1;
+        }
+        
+        // 保存新编号到localStorage
+        localStorage.setItem('invoiceNumber', currentNumber);
+        
+        // 生成格式化的出库单号
+        const formattedNumber = prefix + currentNumber.toString().padStart(padding, '0');
+        return formattedNumber;
+      }
+
+      // 格式化日期函数
+      function formatDate(dateStr) {
+        if (!dateStr) return '';
+        
+        // 处理空字符串或无效值
+        if (dateStr === '' || dateStr === null || dateStr === undefined) {
+          return '';
+        }
+        
+        // 处理数字类型的日期（Excel中的日期存储为数字）
+        if (typeof dateStr === 'number') {
+          // Excel日期是从1900年1月1日开始的天数
+          const date = new Date(Math.round((dateStr - 25569) * 86400000));
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0];
+          }
+          return '';
+        }
+        
+        // 处理字符串类型的日期
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          // 避免1970-01-01的情况
+          if (date.getTime() < 31536000000) { // 1971年之前的日期
+            return '';
+          }
+          return date.toISOString().split('T')[0];
+        }
+        
+        // 尝试解析其他日期格式
+        const datePatterns = [
+          /^(\d{4})-(\d{2})-(\d{2})$/,
+          /^(\d{2})\/(\d{2})\/(\d{4})$/,
+          /^(\d{4})\/(\d{2})\/(\d{2})$/,
+          /^(\d{2})-(\d{2})-(\d{4})$/,
+          /^(\d{8})$/ // 8位数字日期，如20230101
+        ];
+        
+        for (const pattern of datePatterns) {
+          const match = dateStr.match(pattern);
+          if (match) {
+            let year, month, day;
+            switch (pattern) {
+              case datePatterns[0]: // YYYY-MM-DD
+                [, year, month, day] = match;
+                break;
+              case datePatterns[1]: // MM/DD/YYYY
+                [, month, day, year] = match;
+                break;
+              case datePatterns[2]: // YYYY/MM/DD
+                [, year, month, day] = match;
+                break;
+              case datePatterns[3]: // DD-MM-YYYY
+                [, day, month, year] = match;
+                break;
+              case datePatterns[4]: // YYYYMMDD
+                year = dateStr.substring(0, 4);
+                month = dateStr.substring(4, 6);
+                day = dateStr.substring(6, 8);
+                break;
+            }
+            const formattedDate = `${year}-${month}-${day}`;
+            const testDate = new Date(formattedDate);
+            if (!isNaN(testDate.getTime()) && testDate.getTime() >= 31536000000) {
+              return formattedDate;
+            }
+          }
+        }
+        
+        return '';
+      }
+
+      document
+        .getElementById("fileInput")
+        .addEventListener("change", function (e) {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          document.getElementById("fileInfo").textContent =
+            `已选择文件: ${file.name}`;
+
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            try {
+              // 解析Excel文件
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: "array" });
+
+              // 获取第一个工作表
+              const firstSheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[firstSheetName];
+
+              // 提取数据
+              const extractedData = [];
+              if (worksheet) {
+                // 获取工作表的范围
+                const range = XLSX.utils.decode_range(worksheet['!ref']);
+                
+                // 从第一行开始是数据（新格式无表头行）
+                for (let r = 0; r <= range.e.r; r++) {
+                  // 检查第一列（序号）是否有值（用于过滤空行）
+                  const cellA = worksheet[XLSX.utils.encode_cell({r: r, c: 0})];
+                  if (!cellA || !cellA.v) continue;
+                  
+                  // 检查商品名称列是否有值
+                  const cellName = worksheet[XLSX.utils.encode_cell({r: r, c: 3})];
+                  if (!cellName || !cellName.v) continue;
+                  
+                  // 获取商品名称（简化处理）
+                  const productName = simplifyProductName(cellName.v ? cellName.v.toString() : '');
+                  
+                  // 获取型号（简化处理）
+                  let model = '';
+                  const cellModel = worksheet[XLSX.utils.encode_cell({r: r, c: 4})];
+                  if (cellModel && cellModel.v) {
+                    model = simplifyModel(cellModel.v);
+                  }
+                  
+                  // 获取其他字段
+                  const unitPrice = worksheet[XLSX.utils.encode_cell({r: r, c: 6})]?.v || '';
+                  const unit = worksheet[XLSX.utils.encode_cell({r: r, c: 7})]?.v || '个';
+                  const quantity = worksheet[XLSX.utils.encode_cell({r: r, c: 9})]?.v || '';
+                  const amount = worksheet[XLSX.utils.encode_cell({r: r, c: 10})]?.v || '';
+                  let batch = worksheet[XLSX.utils.encode_cell({r: r, c: 11})]?.v || '';
+                  
+                  // 如果型号是 TJEP0 或以 QB0/QD0 开头，检查批号是否为8位数字，否则前面补0
+                  const modelStr = model.toString();
+                  if ((modelStr.startsWith('TJEP0') || modelStr.startsWith('QB0') || modelStr.startsWith('QD0')) && batch) {
+                    const batchStr = batch.toString().trim();
+                    // 检查是否为纯数字且长度不是8位
+                    if (/^\d+$/.test(batchStr) && batchStr.length !== 8) {
+                      // 在前面补0到8位
+                      batch = batchStr.padStart(8, '0');
+                    }
+                  }
+                  const expiryDate = worksheet[XLSX.utils.encode_cell({r: r, c: 13})]?.v || '';
+                  const licenseNumber = worksheet[XLSX.utils.encode_cell({r: r, c: 15})]?.v || '';
+                  const manufacturer = simplifyManufacturer(worksheet[XLSX.utils.encode_cell({r: r, c: 16})]?.v || '');
+                  
+                  extractedData.push({
+                    商品名称: productName,
+                    手写规格: model,
+                    本次数量: quantity,
+                    批号: batch,
+                    有效日期: expiryDate,
+                    产品注册证号: licenseNumber,
+                    生产厂商: manufacturer,
+                    单价: unitPrice,
+                    单位: unit,
+                    金额: amount
+                  });
+                }
+              }
+
+              // 生成出库单HTML，按照图片中的表头结构
+              let html = `
+                <div class="invoice">
+                  <div class="invoice-header" style="page-break-inside: avoid;">
+                    <h2 style="font-size: 22px; font-weight: bold; text-align: center; margin-bottom: 15px; display: block !important;">
+                      <input type="text" class="input-field" style="width: 100%; border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 22px; font-weight: bold;" value="合肥贝陵医疗器械销售有限公司销售出库复核单" onkeydown="handleKeyDown(event, this)">
+                    </h2>
+                  </div>
+                  
+                  <div class="invoice-info">
+                    <table>
+                      <tr>
+                        <td>购买单位：<input type="text" class="input-field" style="width: 300px; border: 1px solid #ddd; padding: 3px;" value="合肥市第一人民医院（滨湖院区）" onkeydown="handleKeyDown(event, this)"></td>
+                        <td>出库单号：<input type="text" id="invoiceNumber" class="input-field" style="width: 150px; border: 1px solid #ddd; padding: 3px;" value="" onkeydown="handleKeyDown(event, this)"></td>
+                        <td>出库日期：<input type="date" class="input-field" style="width: 150px; border: 1px solid #ddd; padding: 3px;" value="${new Date().toISOString().split('T')[0]}" onkeydown="handleKeyDown(event, this)"></td>
+                      </tr>
+                      <tr>
+                        <td>发货仓库：<input type="text" class="input-field" style="width: 300px; border: 1px solid #ddd; padding: 3px;" value="高值主仓" onkeydown="handleKeyDown(event, this)"></td>
+                        <td>经手人：<input type="text" class="input-field" style="width: 150px; border: 1px solid #ddd; padding: 3px;" value="万玉婷" onkeydown="handleKeyDown(event, this)"></td>
+                      </tr>
+                    </table>
+                  </div>
+                  
+                  <table class="invoice-table">
+                    <tr>
+                      <th>行号</th>
+                      <th>商品名称</th>
+                      <th>型号</th>
+                      <th>生产厂商</th>
+                      <th>批号</th>
+                      <th>效期</th>
+                      <th>单位</th>
+                      <th>数量</th>
+                      <th>单价</th>
+                      <th>金额</th>
+                      <th>注册证号</th>
+                      <th>质量情况</th>
+                      <th>储运条件</th>
+                    </tr>
+              `;
+
+              // 填充数据行
+              extractedData.forEach((item, index) => {
+                html += `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.商品名称}</td>
+                    <td>${item.手写规格}</td>
+                    <td><input type="text" class="input-field" style="width: 100%; border: 1px solid #ddd; padding: 3px;" value="${item.生产厂商 || ''}" onkeydown="handleKeyDown(event, this)"></td>
+                    <td><input type="text" class="input-field" style="width: 100%; border: 1px solid #ddd; padding: 3px;" value="${item.批号 || ''}" onkeydown="handleKeyDown(event, this)"></td>
+                    <td>${formatDate(item.有效日期)}</td>
+                    <td>${item.单位 || '个'}</td>
+                    <td style="text-align: right;">${item.本次数量}</td>
+                    <td style="text-align: right;">${item.单价 || ''}</td>
+                    <td class="amount">${item.金额 ? parseFloat(item.金额).toFixed(2) : ''}</td>
+                    <td>${item.产品注册证号}</td>
+                    <td>合格</td>
+                    <td>常温</td>
+                  </tr>
+                `;
+              });
+
+              // 添加合计行
+              html += `
+                  <tr style="font-weight: bold; background-color: #f2f2f2;">
+                    <td colspan="7">本页合计</td>
+                    <td id="totalQuantity">0</td>
+                    <td></td>
+                    <td id="totalAmount">0.00</td>
+                    <td colspan="3"></td>
+                  </tr>
+                  </table>
+                  
+                  <div class="invoice-footer">
+                    <table>
+                      <tr>
+                        <td colspan="4" style="text-align: left;">第一联：仓库   第二联：财务   第三联：存根联</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2">制单人：徐娇娇</td>
+                        <td colspan="2">发货人：刘义兰</td>
+                      </tr>
+                    </table>
+                  </div>
+                </div>
+              `;
+
+              // 生成并设置出库单号
+              const invoiceNumber = getNextInvoiceNumber();
+              document.getElementById("tableContainer").innerHTML = html;
+              document.getElementById("invoiceNumber").value = invoiceNumber;
+              document.getElementById("printBtn").disabled = false;
+              document.getElementById("copyBtn").disabled = false;
+              
+              // 计算初始合计
+              calculateInitialTotals();
+              
+              // 添加单价输入事件监听器，自动计算金额
+              setTimeout(() => {
+                const priceInputs = document.querySelectorAll('.unit-price');
+                priceInputs.forEach(input => {
+                  input.addEventListener('input', function() {
+                    const price = parseFloat(this.value) || 0;
+                    const quantity = parseFloat(this.value) || 0;
+                    const amount = price * quantity;
+                    const amountCell = this.parentElement.nextElementSibling;
+                    amountCell.textContent = amount.toFixed(2);
+                  });
+                });
+              }, 100);
+              
+              // 为数量输入框添加事件监听器
+              setTimeout(() => {
+                const quantityInputs = document.querySelectorAll('input[type="number"]');
+                quantityInputs.forEach(input => {
+                  input.addEventListener('input', function() {
+                    // 重新计算金额
+                    const row = this.closest('tr');
+                    const priceInput = row.querySelector('.unit-price');
+                    if (priceInput) {
+                      const price = parseFloat(priceInput.value) || 0;
+                      const quantity = parseFloat(this.value) || 0;
+                      const amount = price * quantity;
+                      const amountCell = priceInput.parentElement.nextElementSibling;
+                      amountCell.textContent = amount.toFixed(2);
+                      // 重新计算合计
+                      calculateTotals();
+                    }
+                  });
+                });
+              }, 100);
+              
+              // 为单价输入框添加事件监听器
+              setTimeout(() => {
+                const priceInputs = document.querySelectorAll('.unit-price');
+                priceInputs.forEach(input => {
+                  input.addEventListener('input', function() {
+                    // 重新计算金额
+                    const price = parseFloat(this.value) || 0;
+                    const row = this.closest('tr');
+                    const quantityInput = row.querySelector('input[type="number"]');
+                    const quantity = parseFloat(quantityInput.value) || 0;
+                    const amount = price * quantity;
+                    const amountCell = this.parentElement.nextElementSibling;
+                    amountCell.textContent = amount.toFixed(2);
+                    // 重新计算合计
+                    calculateTotals();
+                  });
+                });
+              }, 100);
+              
+              // 计算合计的函数
+              function calculateTotals() {
+                let totalQuantity = 0;
+                let totalAmount = 0;
+                
+                // 遍历所有行
+                const rows = document.querySelectorAll('.invoice-table tr');
+                rows.forEach(row => {
+                  // 跳过表头和合计行
+                  if (row.querySelector('th') || row.querySelector('#totalQuantity')) {
+                    return;
+                  }
+                  
+                  // 获取数量
+                  const quantityInput = row.querySelector('input[type="number"]');
+                  if (quantityInput) {
+                    totalQuantity += parseFloat(quantityInput.value) || 0;
+                  }
+                  
+                  // 获取金额
+                  const amountCell = row.querySelector('.amount');
+                  if (amountCell) {
+                    totalAmount += parseFloat(amountCell.textContent) || 0;
+                  }
+                });
+                
+                // 更新合计行
+                document.getElementById('totalQuantity').textContent = totalQuantity;
+                document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+              }
+            } catch (error) {
+              document.getElementById("tableContainer").innerHTML =
+                `<p style="color: red;">错误: ${error.message}</p>`;
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        });
+      // 键盘导航功能
+      function handleKeyDown(event, element) {
+        if (event.key === 'Enter' || event.key === 'ArrowRight') {
+          event.preventDefault();
+          const inputs = document.querySelectorAll('.input-field');
+          const currentIndex = Array.from(inputs).indexOf(element);
+          if (currentIndex < inputs.length - 1) {
+            inputs[currentIndex + 1].focus();
+          }
+        } else if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          const inputs = document.querySelectorAll('.input-field');
+          const currentIndex = Array.from(inputs).indexOf(element);
+          if (currentIndex > 0) {
+            inputs[currentIndex - 1].focus();
+          }
+        } else if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          const row = element.closest('tr');
+          const nextRow = row.nextElementSibling;
+          if (nextRow) {
+            const currentCellIndex = Array.from(row.children).indexOf(element.parentElement);
+            const nextInput = nextRow.children[currentCellIndex]?.querySelector('.input-field');
+            if (nextInput) {
+              nextInput.focus();
+            }
+          }
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          const row = element.closest('tr');
+          const prevRow = row.previousElementSibling;
+          if (prevRow) {
+            const currentCellIndex = Array.from(row.children).indexOf(element.parentElement);
+            const prevInput = prevRow.children[currentCellIndex]?.querySelector('.input-field');
+            if (prevInput) {
+              prevInput.focus();
+            }
+          }
+        }
+      }
+
+      // 计算初始合计
+      function calculateInitialTotals() {
+        setTimeout(calculateTotals, 200);
+      }
+      
+      // 计算合计的函数
+      function calculateTotals() {
+        let totalQuantity = 0;
+        let totalAmount = 0;
+        
+        // 遍历所有行
+        const rows = document.querySelectorAll('.invoice-table tr');
+        rows.forEach(row => {
+          // 跳过表头和合计行
+          if (row.querySelector('th') || row.querySelector('#totalQuantity')) {
+            return;
+          }
+          
+          // 获取数量（第8列，从1开始计数）
+          const quantityCell = row.querySelector('td:nth-child(8)');
+          if (quantityCell) {
+            const quantity = parseFloat(quantityCell.textContent) || 0;
+            totalQuantity += quantity;
+          }
+          
+          // 获取金额
+          const amountCell = row.querySelector('.amount');
+          if (amountCell) {
+            const amount = parseFloat(amountCell.textContent) || 0;
+            totalAmount += amount;
+          }
+        });
+        
+        // 更新合计行
+        const totalQuantityElement = document.getElementById('totalQuantity');
+        const totalAmountElement = document.getElementById('totalAmount');
+        if (totalQuantityElement && totalAmountElement) {
+          totalQuantityElement.textContent = totalQuantity;
+          totalAmountElement.textContent = totalAmount.toFixed(2);
+        }
+      }
+      
+      // 复制到剪贴板函数（带格式）
+      function copyToClipboard() {
+        const invoice = document.querySelector('.invoice');
+        if (!invoice) {
+          showCopyStatus('未找到出库单', 'red');
+          return;
+        }
+        
+        // 创建HTML表格结构
+        let html = '<table border="1" cellpadding="5" cellspacing="0">';
+        
+        // 1. 添加标题行（跨列）
+        const titleInput = invoice.querySelector('.invoice-header input');
+        if (titleInput) {
+          html += '<tr><td colspan="13" align="center" style="font-weight:bold;font-size:14px;padding:10px;">' + 
+                  escapeHtml(titleInput.value.trim()) + '</td></tr>';
+        }
+        
+        // 2. 添加发票信息
+        const infoTable = invoice.querySelector('.invoice-info table');
+        if (infoTable) {
+          const infoRows = infoTable.querySelectorAll('tr');
+          infoRows.forEach((row) => {
+            html += '<tr>';
+            const cells = row.querySelectorAll('td');
+            let colSpan = Math.ceil(13 / cells.length);
+            cells.forEach((cell) => {
+              const input = cell.querySelector('input');
+              let content = input ? input.value.trim() : cell.textContent.trim();
+              html += '<td colspan="' + colSpan + '" style="padding:5px;">' + escapeHtml(content) + '</td>';
+            });
+            html += '</tr>';
+          });
+        }
+        
+        // 添加空行
+        html += '<tr><td colspan="13">&nbsp;</td></tr>';
+        
+        // 3. 添加数据表格
+        const table = invoice.querySelector('.invoice-table');
+        if (!table) {
+          showCopyStatus('未找到数据表格', 'red');
+          return;
+        }
+        
+        const rows = table.querySelectorAll('tr');
+        if (rows.length < 2) {
+          showCopyStatus('表格无数据', 'red');
+          return;
+        }
+        
+        rows.forEach((row) => {
+          html += '<tr>';
+          // 判断是否为表头行
+          const isHeader = row.querySelector('th');
+          const cells = isHeader ? row.querySelectorAll('th') : row.querySelectorAll('td');
+          
+          cells.forEach((cell) => {
+            const input = cell.querySelector('input');
+            let content = input ? input.value.trim() : cell.textContent.trim();
+            let style = 'padding:5px;';
+            
+            // 表头样式
+            if (isHeader) {
+              style += 'font-weight:bold;background-color:#f2f2f2;';
+            }
+            
+            // 判断是否为合计行
+            if (cell.querySelector('#totalQuantity') || cell.querySelector('#totalAmount')) {
+              style += 'font-weight:bold;background-color:#f2f2f2;';
+            }
+            
+            // 数字右对齐
+            const cellIndex = Array.from(cells).indexOf(cell);
+            if (cellIndex >= 7 && cellIndex <= 9) { // 数量、单价、金额列
+              style += 'text-align:right;';
+            }
+            
+            html += '<td style="' + style + '">' + escapeHtml(content) + '</td>';
+          });
+          html += '</tr>';
+        });
+        
+        // 添加空行
+        html += '<tr><td colspan="13">&nbsp;</td></tr>';
+        
+        // 4. 添加页脚信息
+        const footerTable = invoice.querySelector('.invoice-footer table');
+        if (footerTable) {
+          const footerRows = footerTable.querySelectorAll('tr');
+          footerRows.forEach((row) => {
+            html += '<tr>';
+            const cells = row.querySelectorAll('td');
+            let colSpan = Math.ceil(13 / cells.length);
+            cells.forEach((cell) => {
+              const input = cell.querySelector('input');
+              let content = input ? input.value.trim() : cell.textContent.trim();
+              html += '<td colspan="' + colSpan + '" style="padding:5px;font-size:12px;">' + escapeHtml(content) + '</td>';
+            });
+            html += '</tr>';
+          });
+        }
+        
+        html += '</table>';
+        
+        // 创建剪贴板数据
+        const blob = new Blob([html], { type: 'text/html' });
+        const data = [new ClipboardItem({ 'text/html': blob, 'text/plain': new Blob([htmlToText(html)], { type: 'text/plain' }) })];
+        
+        // 复制到剪贴板
+        navigator.clipboard.write(data).then(() => {
+          showCopyStatus('复制成功！可以粘贴到Excel中', 'green');
+        }).catch(err => {
+          // 降级方案：使用纯文本
+          navigator.clipboard.writeText(htmlToText(html)).then(() => {
+            showCopyStatus('复制成功！可以粘贴到Excel中', 'green');
+          }).catch(err2 => {
+            showCopyStatus('复制失败: ' + err2.message, 'red');
+          });
+        });
+      }
+      
+      // HTML转义函数
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      // HTML转纯文本（用于降级方案）
+      function htmlToText(html) {
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        let text = temp.textContent || temp.innerText || '';
+        // 清理多余空白
+        text = text.replace(/\s+/g, ' ').trim();
+        return text;
+      }
+      
+      // 显示复制状态
+      function showCopyStatus(message, color) {
+        const statusElement = document.getElementById('copyStatus');
+        if (statusElement) {
+          statusElement.textContent = message;
+          statusElement.style.color = color;
+          statusElement.style.display = 'block';
+          setTimeout(() => {
+            statusElement.style.display = 'none';
+          }, 3000);
+        }
+      }
+      
+      // 导出PDF（使用时间戳+金额作为文件名，通过浏览器打印另存为PDF）
+      function exportToPDF() {
+        calculateTotals();
+        
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        
+        const totalAmountElement = document.getElementById('totalAmount');
+        const amountStr = totalAmountElement ? totalAmountElement.textContent.trim() : '0.00';
+        const amountValue = parseFloat(amountStr) || 0;
+        const amountFormatted = amountValue.toFixed(2);
+        const fileName = `${timestamp}-${amountFormatted}`;
+        
+        const originalTitle = document.title;
+        document.title = fileName;
+        
+        window.print();
+        
+        const restoreTitle = function() {
+          document.title = originalTitle;
+          window.removeEventListener('afterprint', restoreTitle);
+        };
+        window.addEventListener('afterprint', restoreTitle);
+      }
+      
+      // 监听打印事件，打印后更新出库单号
+      window.addEventListener('afterprint', function() {
+        // 打印后，下次再导入时会自动生成新的出库单号
+        console.log('打印完成，下次导入会生成新的出库单号');
+      });
+
+      // ==================== 解析粘贴的数据源 ====================
+      /**
+       * 解析粘贴的数据源（固定19行结构）
+       * 
+       * 每条记录固定19行，字段位置如下（1-based行号）：
+       *  1: 序号
+       *  2: 订单编号
+       *  3: 商品编号
+       *  4: 商品名称
+       *  5: 型号
+       *  6: 空行/数字1（跳过）
+       *  7: 单价
+       *  8: 单位
+       *  9: 库存数量（跳过）
+       * 10: 本次数量
+       * 11: 金额
+       * 12: 批号
+       * 13: 空行（跳过）
+       * 14-15: 日期（生产日期/有效期，取最后一个）
+       * 16: 空行（跳过）
+       * 17: 注册证号
+       * 18: 生产厂商
+       * 19: 重复型号（跳过）
+       */
+      function parseDataSource() {
+        const textarea = document.getElementById('dataSource');
+        const rawData = textarea.value.trim();
+        
+        if (!rawData) {
+          alert('请先粘贴数据源');
+          return;
+        }
+
+        try {
+          // 按换行符分割数据（保留空行）
+          const lines = rawData.split(/\r\n|\n|\r/).map(line => line.trim());
+          console.log('解析到', lines.length, '行数据');
+          
+          const records = [];
+          let i = 0;
+          
+          // 固定每条记录19行
+          const RECORD_LENGTH = 19;
+          
+          // 字段位置常量（0-based索引）
+          const FIELD_POS = {
+            SERIAL_NO: 0,      // 序号
+            ORDER_NO: 1,       // 订单编号
+            PRODUCT_NO: 2,     // 商品编号
+            PRODUCT_NAME: 3,   // 商品名称
+            MODEL: 4,          // 型号
+            LICENSE: 15,       // 注册证号（第17行）
+            MANUFACTURER: 16   // 生产厂商（第18行）
+          };
+          
+          // 遍历解析数据
+          while (i < lines.length) {
+            // 跳过空行和脏数据，找到序号开头
+            while (i < lines.length && !isValidSerialNumber(lines, i)) {
+              i++;
+            }
+            
+            if (i >= lines.length) {
+              break;
+            }
+            
+            // 记录当前位置
+            const startPos = i;
+            
+            // 解析关键字段（按固定位置）
+            const record = parseRecord(lines, startPos, FIELD_POS);
+            
+            // 只添加有商品名称的有效记录
+            if (record.商品名称 && record.商品名称.trim() !== '') {
+              records.push(record);
+            }
+            
+            // 移动到下一条记录
+            // 如果剩余行数不足19行但还有有效数据，会在下一轮循环中被识别
+            i = startPos + RECORD_LENGTH;
+          }
+          
+          console.log('解析出', records.length, '条记录');
+          if (records.length > 0) {
+            console.log('第一条记录:', records[0]);
+          }
+          
+          if (records.length === 0) {
+            alert('未解析到有效数据，请检查数据源格式');
+            return;
+          }
+          
+          // 生成出库单
+          generateInvoice(records);
+          alert('数据源解析成功，共解析到 ' + records.length + ' 条记录');
+          
+        } catch (error) {
+          console.error('解析数据源失败:', error);
+          alert('解析数据源失败: ' + error.message);
+        }
+      }
+
+      /**
+       * 检查是否为有效的序号开头
+       * @param {string[]} lines - 所有行数据
+       * @param {number} index - 当前行索引
+       * @returns {boolean} - 是否为有效序号
+       */
+      function isValidSerialNumber(lines, index) {
+        if (!/^\d+$/.test(lines[index])) {
+          return false;
+        }
+        
+        // 检查后面是否有足够的数据
+        const hasFullData = index + 18 < lines.length;
+        const hasMinData = lines.length - index >= 15 && 
+                          lines[index + 1] && lines[index + 1] !== '' &&
+                          lines[index + 2] && lines[index + 2] !== '' &&
+                          lines[index + 3] && lines[index + 3] !== '';
+        
+        return hasFullData || hasMinData;
+      }
+
+      /**
+       * 解析单条记录
+       * @param {string[]} lines - 所有行数据
+       * @param {number} startPos - 记录开始位置
+       * @param {object} pos - 字段位置常量
+       * @returns {object} - 解析后的记录对象
+       */
+      function parseRecord(lines, startPos, pos) {
+        const record = {
+          序号: lines[startPos + pos.SERIAL_NO],
+          订单编号: lines[startPos + pos.ORDER_NO] || '',
+          商品编号: lines[startPos + pos.PRODUCT_NO] || '',
+          商品名称: simplifyProductName(lines[startPos + pos.PRODUCT_NAME] || ''),
+          手写规格: simplifyModel(lines[startPos + pos.MODEL] || ''),
+          单价: '',
+          单位: '',
+          本次数量: '',
+          金额: '',
+          批号: '',
+          有效日期: '',
+          产品注册证号: '',
+          生产厂商: ''
+        };
+        
+        // 解析动态字段（从第7行开始，可能有空行干扰）
+        let currentPos = startPos + 5; // 跳过第6行（空行/数字1）
+        currentPos = skipEmptyAndOne(lines, currentPos);
+        
+        // 解析单价、单位、本次数量、金额、批号
+        record.单价 = getNextValue(lines, currentPos++);
+        record.单位 = getNextValue(lines, currentPos++);
+        currentPos++; // 跳过库存数量
+        record.本次数量 = getNextValue(lines, currentPos++);
+        record.金额 = getNextValue(lines, currentPos++);
+        record.批号 = getNextValue(lines, currentPos++);
+        
+        // 跳过空行，解析日期（取最后一个日期）
+        currentPos = skipEmpty(lines, currentPos);
+        record.有效日期 = parseExpiryDate(lines, currentPos);
+        
+        // 按固定位置解析注册证号和生产厂商
+        record.产品注册证号 = getValueAtPosition(lines, startPos + pos.LICENSE);
+        record.生产厂商 = simplifyManufacturer(getValueAtPosition(lines, startPos + pos.MANUFACTURER));
+        
+        return record;
+      }
+
+      /**
+       * 跳过空行和数字1
+       * @param {string[]} lines - 所有行数据
+       * @param {number} startPos - 起始位置
+       * @returns {number} - 跳过之后的位置
+       */
+      function skipEmptyAndOne(lines, startPos) {
+        let pos = startPos;
+        while (pos < lines.length && (lines[pos] === '' || lines[pos] === '1')) {
+          pos++;
+        }
+        return pos;
+      }
+
+      /**
+       * 跳过空行
+       * @param {string[]} lines - 所有行数据
+       * @param {number} startPos - 起始位置
+       * @returns {number} - 跳过之后的位置
+       */
+      function skipEmpty(lines, startPos) {
+        let pos = startPos;
+        while (pos < lines.length && lines[pos] === '') {
+          pos++;
+        }
+        return pos;
+      }
+
+      /**
+       * 获取指定位置的值（安全获取）
+       * @param {string[]} lines - 所有行数据
+       * @param {number} index - 索引位置
+       * @returns {string} - 值（空字符串如果越界）
+       */
+      function getValueAtPosition(lines, index) {
+        return (index < lines.length && lines[index] !== '') ? lines[index] : '';
+      }
+
+      /**
+       * 获取下一个非空值
+       * @param {string[]} lines - 所有行数据
+       * @param {number} index - 当前位置
+       * @returns {string} - 值（空字符串如果越界）
+       */
+      function getNextValue(lines, index) {
+        return (index < lines.length && lines[index] !== '') ? lines[index] : '';
+      }
+
+      /**
+       * 解析有效期日期（取连续日期中的最后一个）
+       * @param {string[]} lines - 所有行数据
+       * @param {number} startPos - 起始位置
+       * @returns {string} - 有效期日期
+       */
+      function parseExpiryDate(lines, startPos) {
+        let expiryDate = '';
+        let pos = startPos;
+        while (pos < lines.length && lines[pos].match(/^\d{4}-\d{2}-\d{2}$/)) {
+          expiryDate = lines[pos];
+          pos++;
+        }
+        return expiryDate;
+      }
+      // ============================================================
+
+      // 生成出库单
+      function generateInvoice(extractedData) {
+        // 生成出库单HTML
+        let html = `
+          <div class="invoice">
+            <div class="invoice-header" style="page-break-inside: avoid;">
+              <h2 style="font-size: 22px; font-weight: bold; text-align: center; margin-bottom: 15px; display: block !important;">
+                <input type="text" class="input-field" style="width: 100%; border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 22px; font-weight: bold;" value="合肥贝陵医疗器械销售有限公司销售出库复核单" onkeydown="handleKeyDown(event, this)">
+              </h2>
+            </div>
+            
+            <div class="invoice-info">
+              <table>
+                <tr>
+                  <td>购买单位：<input type="text" class="input-field" style="width: 300px; border: 1px solid #ddd; padding: 3px;" value="合肥市第一人民医院（滨湖院区）" onkeydown="handleKeyDown(event, this)"></td>
+                  <td>出库单号：<input type="text" id="invoiceNumber" class="input-field" style="width: 150px; border: 1px solid #ddd; padding: 3px;" value="" onkeydown="handleKeyDown(event, this)"></td>
+                  <td>出库日期：<input type="date" class="input-field" style="width: 150px; border: 1px solid #ddd; padding: 3px;" value="${new Date().toISOString().split('T')[0]}" onkeydown="handleKeyDown(event, this)"></td>
+                </tr>
+                <tr>
+                  <td>发货仓库：<input type="text" class="input-field" style="width: 300px; border: 1px solid #ddd; padding: 3px;" value="高值主仓" onkeydown="handleKeyDown(event, this)"></td>
+                  <td>经手人：<input type="text" class="input-field" style="width: 150px; border: 1px solid #ddd; padding: 3px;" value="万玉婷" onkeydown="handleKeyDown(event, this)"></td>
+                </tr>
+              </table>
+            </div>
+            
+            <table class="invoice-table">
+              <tr>
+                <th>行号</th>
+                <th>商品名称</th>
+                <th>型号</th>
+                <th>生产厂商</th>
+                <th>批号</th>
+                <th>效期</th>
+                <th>单位</th>
+                <th>数量</th>
+                <th>单价</th>
+                <th>金额</th>
+                <th>注册证号</th>
+                <th>质量情况</th>
+                <th>储运条件</th>
+              </tr>
+        `;
+
+        // 填充数据行
+        extractedData.forEach((item, index) => {
+          html += `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${item.商品名称}</td>
+              <td>${item.手写规格}</td>
+              <td><input type="text" class="input-field" style="width: 100%; border: 1px solid #ddd; padding: 3px;" value="${simplifyManufacturer(item.生产厂商) || ''}" onkeydown="handleKeyDown(event, this)"></td>
+              <td><input type="text" class="input-field" style="width: 100%; border: 1px solid #ddd; padding: 3px;" value="${item.批号 || ''}" onkeydown="handleKeyDown(event, this)"></td>
+              <td>${formatDate(item.有效日期)}</td>
+              <td>${item.单位 || '个'}</td>
+              <td style="text-align: right;">${item.本次数量}</td>
+              <td style="text-align: right;">${item.单价 || ''}</td>
+              <td class="amount">${item.金额 ? parseFloat(item.金额).toFixed(2) : ''}</td>
+              <td>${item.产品注册证号}</td>
+              <td>合格</td>
+              <td>常温</td>
+            </tr>
+          `;
+        });
+
+        // 添加合计行
+        html += `
+              <tr style="font-weight: bold; background-color: #f2f2f2;">
+                <td colspan="7">本页合计</td>
+                <td id="totalQuantity">0</td>
+                <td></td>
+                <td id="totalAmount">0.00</td>
+                <td colspan="3"></td>
+              </tr>
+              </table>
+              
+              <div class="invoice-footer">
+                <table>
+                  <tr>
+                    <td colspan="4" style="text-align: left;">第一联：仓库   第二联：财务   第三联：存根联</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">制单人：徐娇娇</td>
+                    <td colspan="2">发货人：刘义兰</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          `;
+
+        // 生成并设置出库单号
+        const invoiceNumber = getNextInvoiceNumber();
+        document.getElementById("tableContainer").innerHTML = html;
+        document.getElementById("invoiceNumber").value = invoiceNumber;
+        document.getElementById("printBtn").disabled = false;
+        document.getElementById("copyBtn").disabled = false;
+        
+        // 计算初始合计
+        setTimeout(calculateTotals, 200);
+      }
+    </script>
+  </body>
+</html>
