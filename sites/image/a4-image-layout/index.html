@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A4图片排版工具 - 网页版</title>
+    <title>A4图片排版工具 - 紧凑填满版</title>
     <style>
         * {
             margin: 0;
@@ -30,7 +30,14 @@
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
+        }
+
+        .hint {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 24px;
         }
 
         .upload-area {
@@ -38,7 +45,7 @@
             border-radius: 8px;
             padding: 40px 20px;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 22px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
@@ -61,6 +68,45 @@
 
         #file-input {
             display: none;
+        }
+
+        /* 参数区 */
+        .params {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 18px 26px;
+            align-items: center;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 16px 18px;
+            margin-bottom: 22px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .params label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .params input[type="number"] {
+            width: 64px;
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .params .note {
+            width: 100%;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: -4px;
         }
 
         .preview-container {
@@ -111,7 +157,7 @@
             display: flex;
             justify-content: center;
             gap: 20px;
-            margin: 30px 0;
+            margin: 26px 0;
         }
 
         button {
@@ -142,26 +188,54 @@
         }
 
         #result-container {
-            margin-top: 40px;
-            text-align: center;
+            margin-top: 30px;
             display: none;
         }
 
-        #result-image {
-            max-width: 100%;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin: 20px 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        .result-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 16px;
         }
 
-        #download-btn {
+        .page-block {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 14px;
+            margin: 0 auto 22px;
+            max-width: 520px;
+        }
+
+        .page-block img {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: block;
+            background: #fff;
+        }
+
+        .page-block .dl {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            color: #2196F3;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .page-block .dl:hover {
+            text-decoration: underline;
+        }
+
+        .download-all {
+            display: block;
+            margin: 10px auto 0;
             background-color: #2196F3;
             color: white;
-            margin-top: 10px;
         }
 
-        #download-btn:hover {
+        .download-all:hover {
             background-color: #0b7dda;
         }
 
@@ -203,6 +277,7 @@
 <body>
     <div class="container">
         <h1>A4图片排版工具</h1>
+        <p class="hint">紧凑填满 · 多图自动塞满整页，图多自动分页（A4 / 300DPI）</p>
 
         <!-- 上传区域 -->
         <div class="upload-area" id="upload-area">
@@ -210,6 +285,17 @@
             <p>点击或拖拽图片到此处上传</p>
             <p style="font-size: 14px; color: #666; margin-top: 10px;">支持 JPG、PNG、BMP 等格式</p>
             <input type="file" id="file-input" accept="image/*" multiple>
+        </div>
+
+        <!-- 参数区 -->
+        <div class="params">
+            <label>边缘留白
+                <input type="number" id="margin-mm" value="8" min="0" max="40" step="1"> mm
+            </label>
+            <label>图片间距
+                <input type="number" id="gap-mm" value="2" min="0" max="20" step="1"> mm
+            </label>
+            <span class="note">留白越小越满；竖图单张会最大化居中，四周留白在所难免。</span>
         </div>
 
         <!-- 错误提示 -->
@@ -220,33 +306,35 @@
 
         <!-- 按钮区域 -->
         <div class="btn-container">
-            <button id="generate-btn">生成A4排版图片</button>
+            <button id="generate-btn">生成A4排版</button>
             <button id="clear-btn">清空所有图片</button>
         </div>
 
         <!-- 加载状态 -->
         <div class="loading" id="loading">
             <div class="loading-spinner"></div>
-            <p style="margin-top: 10px;">正在生成A4图片，请稍候...</p>
+            <p style="margin-top: 10px;">正在排版，请稍候...</p>
         </div>
 
         <!-- 结果区域 -->
         <div id="result-container">
-            <h3>生成结果 (A4尺寸 300DPI)</h3>
-            <img id="result-image" alt="A4排版图片">
-            <button id="download-btn">下载图片</button>
+            <h3 class="result-title" id="result-title">生成结果</h3>
+            <div id="pages"></div>
+            <button class="download-all" id="download-all-btn">下载全部</button>
         </div>
     </div>
 
     <script>
         // 全局变量
         const uploadedImages = [];
-        // A4参数 (300 DPI)
-        const A4_WIDTH = Math.round(210 * 300 / 25.4);  // 2480像素
-        const A4_HEIGHT = Math.round(297 * 300 / 25.4); // 3508像素
-        const PADDING = 20; // 图片间距
 
-        // DOM元素
+        // A4 参数 (300 DPI)
+        const DPI = 300;
+        const MM = DPI / 25.4;                 // 每毫米像素数 ≈ 11.81
+        const PAGE_W = Math.round(210 * MM);   // 2480
+        const PAGE_H = Math.round(297 * MM);   // 3508
+
+        // DOM 元素
         const uploadArea = document.getElementById('upload-area');
         const fileInput = document.getElementById('file-input');
         const previewContainer = document.getElementById('preview-container');
@@ -254,91 +342,63 @@
         const clearBtn = document.getElementById('clear-btn');
         const loading = document.getElementById('loading');
         const resultContainer = document.getElementById('result-container');
-        const resultImage = document.getElementById('result-image');
-        const downloadBtn = document.getElementById('download-btn');
+        const pagesEl = document.getElementById('pages');
+        const resultTitle = document.getElementById('result-title');
+        const downloadAllBtn = document.getElementById('download-all-btn');
         const errorMessage = document.getElementById('error-message');
+        const marginInput = document.getElementById('margin-mm');
+        const gapInput = document.getElementById('gap-mm');
 
         // 初始化事件监听
         function initEventListeners() {
-            // 上传区域点击
-            uploadArea.addEventListener('click', () => {
-                fileInput.click();
-            });
-
-            // 文件选择
+            uploadArea.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', handleFileSelect);
 
-            // 拖拽上传
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('active');
             });
-
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('active');
-            });
-
+            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('active'));
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadArea.classList.remove('active');
-                if (e.dataTransfer.files.length) {
-                    handleFiles(e.dataTransfer.files);
-                }
+                if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
             });
 
-            // 生成按钮
-            generateBtn.addEventListener('click', generateA4Image);
-
-            // 清空按钮
+            generateBtn.addEventListener('click', generateA4);
             clearBtn.addEventListener('click', clearAllImages);
-
-            // 下载按钮
-            downloadBtn.addEventListener('click', downloadImage);
+            downloadAllBtn.addEventListener('click', downloadAll);
         }
 
         // 处理文件选择
         function handleFileSelect(e) {
-            if (e.target.files.length) {
-                handleFiles(e.target.files);
-            }
+            if (e.target.files.length) handleFiles(e.target.files);
         }
 
         // 处理上传的文件
         function handleFiles(files) {
             hideError();
-
-            // 过滤非图片文件
             const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-
             if (imageFiles.length === 0) {
                 showError('请选择有效的图片文件！');
                 return;
             }
-
-            // 处理每个图片文件
             imageFiles.forEach(file => {
                 const reader = new FileReader();
-
                 reader.onload = function (e) {
-                    // 创建图片对象
                     const img = new Image();
                     img.onload = function () {
-                        // 保存图片信息
-                        const imageInfo = {
+                        uploadedImages.push({
                             id: Date.now() + Math.random(),
                             file: file,
                             url: e.target.result,
                             width: img.width,
                             height: img.height
-                        };
-
-                        uploadedImages.push(imageInfo);
-                        // 更新预览
+                        });
                         updatePreview();
                     };
                     img.src = e.target.result;
                 };
-
                 reader.readAsDataURL(file);
             });
         }
@@ -346,179 +406,243 @@
         // 更新预览区域
         function updatePreview() {
             previewContainer.innerHTML = '';
-
-            if (uploadedImages.length === 0) {
-                return;
-            }
-
+            if (uploadedImages.length === 0) return;
             uploadedImages.forEach(image => {
-                const previewItem = document.createElement('div');
-                previewItem.className = 'preview-item';
-                previewItem.dataset.id = image.id;
-
-                previewItem.innerHTML = `
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.dataset.id = image.id;
+                item.innerHTML = `
                     <img src="${image.url}" alt="${image.file.name}">
                     <button class="remove-btn" data-id="${image.id}">×</button>
                 `;
-
-                // 删除按钮事件
-                previewItem.querySelector('.remove-btn').addEventListener('click', (e) => {
-                    const id = parseFloat(e.target.dataset.id);
-                    removeImage(id);
+                item.querySelector('.remove-btn').addEventListener('click', (e) => {
+                    removeImage(parseFloat(e.target.dataset.id));
                 });
-
-                previewContainer.appendChild(previewItem);
+                previewContainer.appendChild(item);
             });
         }
 
-        // 移除单个图片
         function removeImage(id) {
-            const index = uploadedImages.findIndex(img => img.id === id);
-            if (index !== -1) {
-                uploadedImages.splice(index, 1);
+            const idx = uploadedImages.findIndex(img => img.id === id);
+            if (idx !== -1) {
+                uploadedImages.splice(idx, 1);
                 updatePreview();
             }
         }
 
-        // 清空所有图片
         function clearAllImages() {
             uploadedImages.length = 0;
             updatePreview();
-            hideResult();
+            resultContainer.style.display = 'none';
             hideError();
         }
 
-        // 计算最佳行列布局
-        function calculateLayout(numImages) {
-            let rows = 1;
-            let cols = numImages;
-            let minGap = Infinity;
+        /* ===================== 紧凑排版算法 ===================== */
 
-            for (let r = 1; r <= numImages; r++) {
-                const c = Math.ceil(numImages / r);
-                // 计算比例差，寻找最均衡的布局
-                const areaRatio = (c * A4_HEIGHT) / (r * A4_WIDTH);
-                const gap = Math.abs(areaRatio - 1);
+        // 给定一张图片对象，返回其宽高比 w/h
+        function ratioOf(im) { return im.width / im.height; }
 
-                if (gap < minGap) {
-                    minGap = gap;
-                    rows = r;
-                    cols = c;
+        // 一行图片若统一缩放使「行宽 = availW」，其行高为：
+        //   h = (availW - gap*(n-1)) / Σ(ratio)
+        function rowHeight(rowImgs, availW, gap) {
+            const sumR = rowImgs.reduce((s, im) => s + ratioOf(im), 0);
+            const n = rowImgs.length;
+            if (n === 0) return 0;
+            return (availW - gap * (n - 1)) / sumR;
+        }
+
+        // 把 imgs 切成 R 行：按累计宽高比均衡切分，使各行高度相近
+        function splitRows(imgs, R) {
+            const ratios = imgs.map(ratioOf);
+            const total = ratios.reduce((a, b) => a + b, 0);
+            const target = total / R;
+            const rows = [];
+            let cur = [], acc = 0;
+            for (let i = 0; i < imgs.length; i++) {
+                cur.push(imgs[i]);
+                acc += ratios[i];
+                const isLast = (rows.length === R - 1);
+                if (!isLast && acc >= target) {
+                    rows.push(cur); cur = []; acc = 0;
                 }
             }
-
-            return { rows, cols };
+            if (cur.length) rows.push(cur);
+            return rows;
         }
 
-        // 生成A4图片
-        async function generateA4Image() {
-            hideError();
+        // 对一组图片求「单页最优布局」：遍历行数 R，取能放进单页且总高最大的
+        function bestLayout(imgs, availW, availH, gap) {
+            let best = null;
+            const N = imgs.length;
+            for (let R = 1; R <= N; R++) {
+                const rows = splitRows(imgs, R);
+                const rowHs = rows.map(r => rowHeight(r, availW, gap));
+                const totalH = rowHs.reduce((a, b) => a + b, 0) + gap * (rows.length - 1);
+                if (totalH <= availH + 0.5) {
+                    const score = totalH; // 越满越好
+                    if (!best || score > best.score) best = { rows, rowHs, score, R };
+                }
+            }
+            if (best) return best;
+            // 所有 R 都放不下（图过多）→ 退化为逐行贪心，尽量多塞
+            return overflowLayout(imgs, availW, availH, gap);
+        }
 
+        function overflowLayout(imgs, availW, availH, gap) {
+            const minRowH = Math.max(availH * 0.02, 4);
+            let rows = [], cur = [];
+            for (const im of imgs) {
+                const test = cur.concat(im);
+                const h = rowHeight(test, availW, gap);
+                if (cur.length > 0 && h < minRowH) {
+                    rows.push(cur); cur = [im];
+                } else {
+                    cur = test;
+                }
+            }
+            if (cur.length) rows.push(cur);
+            const rowHs = rows.map(r => Math.min(rowHeight(r, availW, gap), availH));
+            return { rows, rowHs, score: 0, R: rows.length };
+        }
+
+        // 分页：把图片切成若干页，每页尽量塞满
+        function paginate(imgs, availW, availH, gap) {
+            const pages = [];
+            let rest = imgs.slice();
+            let guard = 0;
+            while (rest.length && guard++ < 200) {
+                let k = 1;
+                for (let t = 2; t <= rest.length; t++) {
+                    const sub = rest.slice(0, t);
+                    const lay = bestLayout(sub, availW, availH, gap);
+                    if (lay.score > 0) k = t; else break;
+                }
+                pages.push(rest.slice(0, k));
+                rest = rest.slice(k);
+            }
+            return pages;
+        }
+
+        // 绘制单页，返回 canvas
+        function drawPage(pageImgs, margin, gap) {
+            const availW = PAGE_W - 2 * margin;
+            const availH = PAGE_H - 2 * margin;
+            const lay = bestLayout(pageImgs, availW, availH, gap);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = PAGE_W;
+            canvas.height = PAGE_H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+
+            let y = margin;
+            lay.rows.forEach((row, ri) => {
+                const h = lay.rowHs[ri];
+                // 整页只有一张：最大化居中（contain），不裁切
+                if (pageImgs.length === 1 && row.length === 1) {
+                    const im = row[0];
+                    const s = Math.min(availW / im.width, availH / im.height);
+                    const w = im.width * s, hh = im.height * s;
+                    ctx.drawImage(im.el, margin + (availW - w) / 2, margin + (availH - hh) / 2, w, hh);
+                    y += availH + gap;
+                    return;
+                }
+                let x = margin;
+                row.forEach(im => {
+                    const w = h * ratioOf(im);
+                    ctx.drawImage(im.el, x, y, w, h);
+                    x += w + gap;
+                });
+                y += h + gap;
+            });
+            return canvas;
+        }
+
+        // 预加载每张图为 Image 元素（带 .width/.height）
+        function loadEl(im) {
+            return new Promise(resolve => {
+                if (im.el && im.el.complete && im.el.width) return resolve(im.el);
+                const e = new Image();
+                e.onload = () => resolve(e);
+                e.onerror = () => resolve(e);
+                e.src = im.url;
+            });
+        }
+
+        /* ===================== 生成流程 ===================== */
+
+        async function generateA4() {
+            hideError();
             if (uploadedImages.length === 0) {
                 showError('请先上传至少一张图片！');
                 return;
             }
-
-            // 显示加载状态
             loading.style.display = 'block';
-            hideResult();
+            resultContainer.style.display = 'none';
+
+            const margin = Math.max(0, parseFloat(marginInput.value) || 0) * MM;
+            const gap = Math.max(0, parseFloat(gapInput.value) || 0) * MM;
+            const availW = PAGE_W - 2 * margin;
+            const availH = PAGE_H - 2 * margin;
 
             try {
-                // 创建canvas
-                const canvas = document.createElement('canvas');
-                canvas.width = A4_WIDTH;
-                canvas.height = A4_HEIGHT;
-                const ctx = canvas.getContext('2d');
+                // 预加载
+                for (const im of uploadedImages) im.el = await loadEl(im);
 
-                // 填充白色背景
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                const numImages = uploadedImages.length;
-                const { rows, cols } = calculateLayout(numImages);
-
-                // 计算每个图片单元格的尺寸
-                const availableWidth = canvas.width - (cols + 1) * PADDING;
-                const availableHeight = canvas.height - (rows + 1) * PADDING;
-                const cellWidth = Math.floor(availableWidth / cols);
-                const cellHeight = Math.floor(availableHeight / rows);
-
-                // 绘制每张图片
-                for (let i = 0; i < numImages; i++) {
-                    const imageInfo = uploadedImages[i];
-
-                    // 计算位置
-                    const row = Math.floor(i / cols);
-                    const col = i % cols;
-
-                    // 加载图片
-                    const img = new Image();
-                    img.src = imageInfo.url;
-
-                    // 等待图片加载完成
-                    await new Promise((resolve) => {
-                        img.onload = resolve;
-                        img.onerror = resolve;
-                    });
-
-                    // 计算缩放比例
-                    const scaleW = cellWidth / img.width;
-                    const scaleH = cellHeight / img.height;
-                    const scale = Math.min(scaleW, scaleH);
-
-                    // 计算缩放后的尺寸
-                    const newWidth = Math.floor(img.width * scale);
-                    const newHeight = Math.floor(img.height * scale);
-
-                    // 计算绘制位置（居中）
-                    const x = PADDING + col * (cellWidth + PADDING) + Math.floor((cellWidth - newWidth) / 2);
-                    const y = PADDING + row * (cellHeight + PADDING) + Math.floor((cellHeight - newHeight) / 2);
-
-                    // 绘制图片
-                    ctx.drawImage(img, x, y, newWidth, newHeight);
+                // 分页 + 逐页绘制
+                const pages = paginate(uploadedImages, availW, availH, gap);
+                const pageURLs = [];
+                for (const p of pages) {
+                    const canvas = drawPage(p, margin, gap);
+                    pageURLs.push(canvas.toDataURL('image/png', 0.95));
                 }
 
-                // 转换为图片URL
-                const imageUrl = canvas.toDataURL('image/png', 0.95);
+                // 展示
+                pagesEl.innerHTML = '';
+                pageURLs.forEach((url, i) => {
+                    const block = document.createElement('div');
+                    block.className = 'page-block';
+                    block.innerHTML = `
+                        <div style="font-size:13px;color:#888;margin-bottom:8px;text-align:center">第 ${i + 1} / ${pageURLs.length} 页</div>
+                        <img src="${url}" alt="第${i + 1}页">
+                        <a class="dl" href="${url}" download="A4排版_第${i + 1}页.png">下载这一页</a>
+                    `;
+                    pagesEl.appendChild(block);
+                });
 
-                // 显示结果
-                resultImage.src = imageUrl;
+                resultTitle.textContent = `生成结果（共 ${pageURLs.length} 页）`;
                 resultContainer.style.display = 'block';
-
+                resultContainer._urls = pageURLs;
             } catch (error) {
                 showError(`生成失败：${error.message}`);
-                console.error('生成A4图片出错：', error);
+                console.error(error);
             } finally {
-                // 隐藏加载状态
                 loading.style.display = 'none';
             }
         }
 
-        // 下载图片
-        function downloadImage() {
-            const link = document.createElement('a');
-            link.href = resultImage.src;
-            link.download = `A4图片排版_${new Date().getTime()}.png`;
-            link.click();
+        function downloadAll() {
+            const urls = resultContainer._urls || [];
+            urls.forEach((url, i) => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `A4排版_第${i + 1}页.png`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
         }
 
-        // 显示错误信息
+        /* ===================== 提示 ===================== */
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
         }
-
-        // 隐藏错误信息
         function hideError() {
             errorMessage.style.display = 'none';
         }
 
-        // 隐藏结果区域
-        function hideResult() {
-            resultContainer.style.display = 'none';
-        }
-
-        // 初始化
         window.onload = function () {
             initEventListeners();
         };
