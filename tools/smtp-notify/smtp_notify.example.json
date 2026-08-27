@@ -1,0 +1,7 @@
+{
+  "smtp_host": "smtp.qq.com",
+  "smtp_port": 465,
+  "smtp_user": "你的QQ@qq.com",
+  "smtp_pass": "授权码(非密码)",
+  "default_to": "865778357@qq.com"
+}
