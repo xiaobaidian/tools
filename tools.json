@@ -1,4 +1,81 @@
 {
   "updated": "2026-08-27",
-  "tools": []
+  "tools": [
+    {
+      "name": "邮箱体检 mailbox-audit",
+      "emoji": "📊",
+      "type": "tool",
+      "folder": "tools/mailbox-audit",
+      "desc": "只读拉取 INBOX 邮件头，统计年份/发件人/域名/类型占比",
+      "tags": [
+        "邮箱",
+        "IMAP",
+        "审计"
+      ],
+      "updated": "2026-08-25"
+    },
+    {
+      "name": "邮件内容审计 mailbox-content-audit",
+      "emoji": "📝",
+      "type": "tool",
+      "folder": "tools/mailbox-content-audit",
+      "desc": "逐封读正文按价值分筐（安全/账单/营销/人际），生成拟删清单",
+      "tags": [
+        "邮箱",
+        "审计",
+        "清理"
+      ],
+      "updated": "2026-08-25"
+    },
+    {
+      "name": "订阅清理候选 mailbox-cleanup-subscribe",
+      "emoji": "🧹",
+      "type": "tool",
+      "folder": "tools/mailbox-cleanup-subscribe",
+      "desc": "生成订阅/广告类清理候选清单（只读）",
+      "tags": [
+        "邮箱",
+        "清理"
+      ],
+      "updated": "2026-08-25"
+    },
+    {
+      "name": "INBOX 规则清理 mailbox-cleanup",
+      "emoji": "🗂️",
+      "type": "tool",
+      "folder": "tools/mailbox-cleanup",
+      "desc": "只留人际/账单/合同offer，其余移到归档夹（可找回）",
+      "tags": [
+        "邮箱",
+        "清理"
+      ],
+      "updated": "2026-08-25"
+    },
+    {
+      "name": "SMTP 直发 smtp-notify",
+      "emoji": "📧",
+      "type": "tool",
+      "folder": "tools/smtp-notify",
+      "desc": "QQ 邮箱 SMTP 直发通知（不依赖连接器）",
+      "tags": [
+        "邮箱",
+        "SMTP",
+        "通知"
+      ],
+      "updated": "2026-08-25"
+    },
+    {
+      "name": "仓库维护 repo-admin",
+      "emoji": "🛠️",
+      "type": "tool",
+      "folder": "tools/repo-admin",
+      "desc": "本仓库自身的维护脚本（初始化/重建门户）",
+      "tags": [
+        "git",
+        "pages",
+        "维护"
+      ],
+      "updated": "2026-08-27"
+    }
+  ]
 }
