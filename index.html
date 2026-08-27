@@ -3,165 +3,207 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>小微的工具箱 · Sanfre's Tools</title>
+<title>Sanfre 的工具 · 网页小工具集</title>
+<meta name="description" content="Sanfre 的网页小工具统一入口，由 WorkBuddy（小微）维护。"/>
 <style>
   :root{
-    --bg:#0b0e1a; --bg2:#121732; --card:rgba(28,34,64,.72);
-    --fg:#eaf0ff; --muted:#9aa6d4; --acc:#7c8cff; --acc2:#56e1c9;
-    --web:#56e1c9; --tool:#ffb86c; --line:rgba(124,140,255,.18);
-    --shadow:0 10px 40px rgba(0,0,0,.45);
+    --bg:#ffffff;
+    --section:#f5f5f7;
+    --ink:#1d1d1f;
+    --muted:#86868b;
+    --blue:#0066cc;
+    --blue-hover:#0077ed;
+    --line:#d2d2d7;
+    --card:#fbfbfd;
+    --shadow:0 4px 24px rgba(0,0,0,.06);
+    --maxw:980px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
-    color:var(--fg); min-height:100vh; line-height:1.6;
-    background:
-      radial-gradient(1100px 600px at 85% -10%, rgba(124,140,255,.22), transparent 60%),
-      radial-gradient(900px 500px at 10% 10%, rgba(86,225,201,.16), transparent 55%),
-      linear-gradient(160deg, var(--bg), var(--bg2));
-    background-attachment:fixed;
+    font-family:var(--font);
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
   }
-  .wrap{max-width:1080px;margin:0 auto;padding:48px 22px 72px}
-  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:30px}
-  .title{font-size:40px;font-weight:800;letter-spacing:.5px;margin:0;
-    background:linear-gradient(90deg,#fff,#aab6ff 60%,var(--acc2));
-    -webkit-background-clip:text;background-clip:text;color:transparent}
-  .sub{color:var(--muted);margin:6px 0 0;font-size:15px}
-  .links a{color:var(--fg);text-decoration:none;font-size:13px;padding:8px 14px;border:1px solid var(--line);
-    border-radius:999px;background:rgba(255,255,255,.04);transition:.2s;white-space:nowrap}
-  .links a:hover{border-color:var(--acc);color:#fff;transform:translateY(-2px)}
-  .links{display:flex;gap:10px;flex-wrap:wrap}
-  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 18px}
-  .search{flex:1;min-width:220px;display:flex;align-items:center;gap:8px;background:var(--card);
-    border:1px solid var(--line);border-radius:12px;padding:10px 14px;backdrop-filter:blur(8px)}
-  .search input{flex:1;background:transparent;border:0;outline:0;color:var(--fg);font-size:14px}
-  .search svg{opacity:.6}
-  .chips{display:flex;gap:8px;flex-wrap:wrap}
-  .chip{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);
-    padding:8px 14px;border-radius:999px;font-size:13px;transition:.2s}
-  .chip:hover{color:#fff}
-  .chip.active{background:linear-gradient(90deg,var(--acc),#9aa6ff);color:#0b0e1a;border-color:transparent;font-weight:600}
-  .cat{margin:26px 0 6px}
-  .cat-h{font-size:18px;font-weight:700;margin:0 0 14px;display:flex;align-items:center;gap:10px;
-    padding-left:4px;border-left:3px solid var(--acc)}
-  .cat-n{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);border:1px solid var(--line);
-    padding:1px 9px;border-radius:999px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
-  .card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;
-    padding:22px;backdrop-filter:blur(10px);box-shadow:var(--shadow);transition:transform .22s,border-color .22s;overflow:hidden}
-  .card:before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent,rgba(124,140,255,.08));opacity:0;transition:.22s}
-  .card:hover{transform:translateY(-5px);border-color:var(--acc)}
-  .card:hover:before{opacity:1}
-  .card .top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-  .emoji{font-size:30px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
-  .card h3{margin:0;font-size:19px}
-  .badge{margin-left:auto;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;letter-spacing:.3px}
-  .badge.web{background:rgba(86,225,201,.16);color:var(--web)}
-  .badge.tool{background:rgba(255,184,108,.16);color:var(--tool)}
-  .card p{margin:0 0 14px;color:var(--muted);font-size:13.5px;min-height:38px}
-  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
-  .tag{font-size:11px;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line);padding:3px 8px;border-radius:8px}
-  .open{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;text-decoration:none;
-    color:#0b0e1a;background:linear-gradient(90deg,var(--acc),#aab6ff);padding:9px 16px;border-radius:10px;transition:.2s}
-  .open:hover{filter:brightness(1.08);transform:translateX(2px)}
-  .empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 20px;border:1px dashed var(--line);border-radius:18px}
-  .empty .big{font-size:46px;margin-bottom:10px}
-  footer{margin-top:54px;color:var(--muted);font-size:12.5px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
-  footer a{color:var(--acc);text-decoration:none}
-  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  a{color:inherit;text-decoration:none}
+
+  /* ---------- 导航 ---------- */
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    height:48px;display:flex;align-items:center;justify-content:center;gap:38px;
+    background:rgba(255,255,255,.72);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-bottom:1px solid rgba(0,0,0,.08);
+    font-size:13px;
+  }
+  .nav .brand{position:absolute;left:max(22px,calc(50% - var(--maxw)/2));font-weight:600;letter-spacing:.2px;font-size:15px}
+  .nav .links{display:flex;gap:30px}
+  .nav .links a{color:var(--ink);opacity:.85;transition:opacity .2s}
+  .nav .links a:hover{opacity:1;color:var(--blue)}
+  @media(max-width:720px){.nav .links{display:none}.nav .brand{left:22px}}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    padding:160px 22px 90px;
+    text-align:center;
+    background:linear-gradient(180deg,#fbfbfd 0%,#ffffff 100%);
+  }
+  .hero .eyebrow{
+    font-size:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--blue);margin-bottom:14px;
+  }
+  .hero h1{
+    font-size:clamp(40px,6.4vw,72px);font-weight:600;letter-spacing:-.02em;line-height:1.05;
+    margin-bottom:20px;
+  }
+  .hero .sub{
+    font-size:clamp(18px,2.4vw,24px);color:var(--muted);font-weight:400;max-width:620px;margin:0 auto 34px;
+  }
+  .hero .cta{
+    display:inline-flex;gap:26px;align-items:center;font-size:17px;
+  }
+  .hero .cta a{color:var(--blue)}
+  .hero .cta a:hover{text-decoration:underline}
+  .hero .cta .arrow{font-size:13px}
+
+  /* ---------- 区块 ---------- */
+  .catalog{max-width:var(--maxw);margin:0 auto;padding:30px 22px 60px}
+  .cat{padding:64px 0;border-top:1px solid var(--line)}
+  .cat:first-child{border-top:0}
+  .cat-head{text-align:center;margin-bottom:44px}
+  .cat-head h2{font-size:clamp(30px,4vw,44px);font-weight:600;letter-spacing:-.01em}
+  .cat-head p{color:var(--muted);font-size:17px;margin-top:8px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+  .card{
+    background:var(--card);border:1px solid rgba(0,0,0,.05);border-radius:20px;
+    padding:42px 28px;text-align:center;
+    box-shadow:var(--shadow);
+    transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s;
+    opacity:0;transform:translateY(26px);
+  }
+  .card.in{opacity:1;transform:none}
+  .card:hover{transform:translateY(-6px);box-shadow:0 12px 38px rgba(0,0,0,.1)}
+  .card .ico{font-size:46px;line-height:1;margin-bottom:16px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.12))}
+  .card h3{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:8px}
+  .card .desc{color:var(--muted);font-size:14.5px;min-height:42px;margin-bottom:18px}
+  .card .open{
+    display:inline-flex;align-items:center;gap:5px;font-size:15px;color:var(--blue);font-weight:400;
+  }
+  .card .open:hover{text-decoration:underline}
+  .card .open .a{transition:transform .2s}
+  .card:hover .open .a{transform:translateX(3px)}
+
+  /* ---------- Footer ---------- */
+  footer{
+    background:var(--section);color:var(--muted);font-size:12px;
+    padding:34px 22px;text-align:center;border-top:1px solid var(--line);
+  }
+  footer a{color:var(--blue)}
+  footer .sep{margin:0 8px;opacity:.4}
+
+  /* 滚动渐显 stagger */
+  .card.in{transition-delay:var(--d,0ms)}
+
+  @media(prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+    .card{opacity:1;transform:none}
+    html{scroll-behavior:auto}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1 class="title">🛠️ 小微的工具箱</h1>
-      <p class="sub">Sanfre 的个人小工具 & 静态网页集 · 由 WorkBuddy（小微）维护</p>
-    </div>
-    <div class="links">
-      <a href="https://github.com/xiaobaidian/tools" target="_blank" rel="noopener">⭐ GitHub 仓库</a>
-      <a href="https://xiaobaidian.github.io/tools/tools.json" target="_blank" rel="noopener">📄 工具清单</a>
-    </div>
-  </header>
 
-  <div class="controls">
-    <label class="search">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="q" type="text" placeholder="搜索工具名称 / 描述 / 标签…" autocomplete="off"/>
-    </label>
-    <div class="chips" id="chips"></div>
+<nav class="nav">
+  <div class="brand">⌘ 工具集</div>
+  <div class="links">
+    <a href="#cat-mail">邮箱</a>
+    <a href="#cat-image">图片</a>
+    <a href="#cat-doc">文档</a>
+    <a href="#cat-repo">维护</a>
+    <a href="https://github.com/xiaobaidian/tools" target="_blank" rel="noopener">GitHub</a>
   </div>
+</nav>
 
-  <div class="grid" id="grid" style="display:block"></div>
+<header class="hero">
+  <div class="eyebrow">Sanfre's Tools</div>
+  <h1>你的网页小工具，<br/>集于一处。</h1>
+  <p class="sub">所有网页小工具的统一入口。随取随用，干净清爽。</p>
+  <div class="cta">
+    <a href="#cat-mail">浏览工具 <span class="arrow">↓</span></a>
+    <a href="https://github.com/xiaobaidian/tools" target="_blank" rel="noopener">在 GitHub 查看</a>
+  </div>
+</header>
 
-  <footer>
-    <span>仓库：<a href="https://github.com/xiaobaidian/tools">github.com/xiaobaidian/tools</a></span>
-    <span id="meta"></span>
-  </footer>
-</div>
+<main class="catalog" id="catalog">
+  <!-- 区块由 tools.json 动态生成 -->
+</main>
+
+<footer>
+  <div>由 WorkBuddy（小微）维护 · 数据来自 <a href="./tools.json">tools.json</a></div>
+  <div style="margin-top:6px">仓库 <a href="https://github.com/xiaobaidian/tools">github.com/xiaobaidian/tools</a><span class="sep">·</span>公开可访问</div>
+</footer>
 
 <script>
-const TYPE = {web:{label:"网页",cls:"web"}, tool:{label:"工具",cls:"tool"}};
-const CATEGORIES = ["📧 邮箱管理","🖼️ 图片工具","📄 文档工具","🛠️ 仓库维护"];
-let TOOLS = [], filter = "all", query = "";
+const CATEGORIES = [
+  {key:"mail",  label:"邮箱管理",  sub:"收发与管理邮箱的一整套工具"},
+  {key:"image", label:"图片工具",  sub:"本地处理，零依赖，保护隐私"},
+  {key:"doc",   label:"文档工具",  sub:"表格与单据，一键生成"},
+  {key:"repo",  label:"仓库维护",  sub:"工具集自身的维护脚本"},
+];
+const TYPE = {web:{label:"打开"}, tool:{label:"查看说明"}};
 
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
-function cardHtml(t){
-  const ty = TYPE[t.type]||TYPE.tool;
+
+function cardHtml(t,i){
   const link = "./" + t.folder + (t.type==="web" ? "/" : "/README.md");
-  const tags = (t.tags||[]).map(x=>'<span class="tag">#'+esc(x)+'</span>').join("");
-  return `<div class="card">
-    <div class="top">
-      <span class="emoji">${esc(t.emoji||"🧰")}</span>
-      <h3>${esc(t.name)}</h3>
-      <span class="badge ${ty.cls}">${ty.label}</span>
-    </div>
-    <p>${esc(t.desc)||"——"}</p>
-    <div class="tags">${tags}</div>
-    <a class="open" href="${link}" target="_blank" rel="noopener">打开 →</a>
-  </div>`;
+  const lbl = (TYPE[t.type]||TYPE.tool).label;
+  return `<a class="card" href="${link}" target="_blank" rel="noopener" style="--d:${i*70}ms">
+    <div class="ico">${esc(t.emoji||"🧰")}</div>
+    <h3>${esc(t.name)}</h3>
+    <div class="desc">${esc(t.desc)||"——"}</div>
+    <span class="open">${lbl} <span class="a">›</span></span>
+  </a>`;
 }
+
 function render(){
-  const grid = document.getElementById("grid");
-  const q = query.trim().toLowerCase();
-  const matched = TOOLS.filter(t=>{
-    if(filter!=="all" && t.category!==filter) return false;
-    if(!q) return true;
-    return (t.name+" "+(t.desc||"")+" "+(t.tags||[]).join(" ")).toLowerCase().includes(q);
+  const catalog = document.getElementById("catalog");
+  const groups = {};
+  TOOLS.forEach(t=>{
+    const c = (t.category||"其他").replace(/[📧🖼️📄🛠️]\s*/g,"").trim();
+    (groups[c] = groups[c]||[]).push(t);
   });
-  if(!matched.length){
-    grid.innerHTML = '<div class="empty"><div class="big">🔧</div>还没有匹配的工具～ 让小微给你搓一个？</div>';
-    return;
-  }
-  const cats = CATEGORIES.filter(c=> matched.some(t=>t.category===c));
-  for(const t of matched) if(!cats.includes(t.category)) cats.push(t.category);
   let html = "";
-  for(const c of cats){
-    const items = matched.filter(t=>t.category===c);
-    html += `<section class="cat"><div class="cat-h">${esc(c)} <span class="cat-n">${items.length}</span></div>`
-          + `<div class="grid">` + items.map(cardHtml).join("") + `</div></section>`;
-  }
-  grid.innerHTML = html;
-}
-function buildChips(){
-  const el = document.getElementById("chips");
-  const all = [["all","全部"]].concat(CATEGORIES.map(c=>[c,c]));
-  el.innerHTML = all.map(([f,l])=>`<span class="chip${f==='all'?' active':''}" data-f="${esc(f)}">${esc(l)}</span>`).join("");
-  el.addEventListener("click", e=>{
-    const c=e.target.closest(".chip"); if(!c) return;
-    document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
-    c.classList.add("active"); filter=c.dataset.f; render();
+  CATEGORIES.forEach(cat=>{
+    const items = groups[cat.label] || [];
+    if(!items.length) return;
+    html += `<section class="cat" id="cat-${cat.key}">
+      <div class="cat-head"><h2>${esc(cat.label)}</h2><p>${esc(cat.sub)}</p></div>
+      <div class="grid">${items.map((t,i)=>cardHtml(t,i)).join("")}</div>
+    </section>`;
   });
+  catalog.innerHTML = html || '<p style="text-align:center;color:var(--muted)">还没有工具～</p>';
+
+  // 滚动渐显
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+  },{threshold:.12});
+  document.querySelectorAll(".card").forEach(el=>io.observe(el));
 }
+
+let TOOLS = [];
 fetch("./tools.json").then(r=>r.json()).then(d=>{
   TOOLS = d.tools||[];
-  document.getElementById("meta").textContent = "共 " + TOOLS.length + " 个工具 · 更新于 " + (d.updated||"");
-  buildChips(); render();
+  render();
 }).catch(e=>{
-  document.getElementById("grid").innerHTML = '<div class="empty"><div class="big">⚠️</div>清单加载失败：'+e+'</div>';
+  document.getElementById("catalog").innerHTML =
+    '<p style="text-align:center;color:var(--muted)">清单加载失败：'+e+'</p>';
 });
-document.getElementById("q").addEventListener("input", e=>{query=e.target.value;render();});
 </script>
 </body>
 </html>
