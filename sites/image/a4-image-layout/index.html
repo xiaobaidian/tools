@@ -277,7 +277,7 @@
 <body>
     <div class="container">
         <h1>A4图片排版工具</h1>
-        <p class="hint">紧凑填满 · 多图自动塞满整页，图多自动分页（A4 / 300DPI）</p>
+        <p class="hint">紧凑拼贴 · 所有图片浓缩在单张 A4，最大化利用空间（A4 / 300DPI）</p>
 
         <!-- 上传区域 -->
         <div class="upload-area" id="upload-area">
@@ -295,7 +295,7 @@
             <label>图片间距
                 <input type="number" id="gap-mm" value="2" min="0" max="20" step="1"> mm
             </label>
-            <span class="note">留白越小越满；竖图单张会最大化居中，四周留白在所难免。</span>
+            <span class="note">所有图拼进同一张 A4；间距越小越满，间距=0 时图片之间无缝相接。</span>
         </div>
 
         <!-- 错误提示 -->
@@ -320,7 +320,7 @@
         <div id="result-container">
             <h3 class="result-title" id="result-title">生成结果</h3>
             <div id="pages"></div>
-            <button class="download-all" id="download-all-btn">下载全部</button>
+            <button class="download-all" id="download-all-btn">下载图片</button>
         </div>
     </div>
 
@@ -437,97 +437,64 @@
             hideError();
         }
 
-        /* ===================== 紧凑排版算法 ===================== */
+        /* ===================== 紧凑拼贴算法（单页 treemap） ===================== */
+        // 目标：所有图片浓缩到单张 A4。用 treemap 面积二分 + 切向择优，使整页被矩形
+        // 100% 覆盖、每图保持自身比例（contain，不变形不裁切），最大化空间利用。
 
-        // 给定一张图片对象，返回其宽高比 w/h
-        function ratioOf(im) { return im.width / im.height; }
-
-        // 一行图片若统一缩放使「行宽 = availW」，其行高为：
-        //   h = (availW - gap*(n-1)) / Σ(ratio)
-        function rowHeight(rowImgs, availW, gap) {
-            const sumR = rowImgs.reduce((s, im) => s + ratioOf(im), 0);
-            const n = rowImgs.length;
-            if (n === 0) return 0;
-            return (availW - gap * (n - 1)) / sumR;
-        }
-
-        // 把 imgs 切成 R 行：按累计宽高比均衡切分，使各行高度相近
-        function splitRows(imgs, R) {
-            const ratios = imgs.map(ratioOf);
-            const total = ratios.reduce((a, b) => a + b, 0);
-            const target = total / R;
-            const rows = [];
-            let cur = [], acc = 0;
-            for (let i = 0; i < imgs.length; i++) {
-                cur.push(imgs[i]);
-                acc += ratios[i];
-                const isLast = (rows.length === R - 1);
-                if (!isLast && acc >= target) {
-                    rows.push(cur); cur = []; acc = 0;
-                }
+        // 递归切割：把一组图按面积二分，切向选择使子矩形更接近正方形（减少 contain 留白）
+        function layoutTreemap(items, x, y, w, h, result) {
+            const n = items.length;
+            if (n === 0) return;
+            if (n === 1) {
+                result.push({ img: items[0].img, x, y, w, h });
+                return;
             }
-            if (cur.length) rows.push(cur);
-            return rows;
-        }
-
-        // 对一组图片求「单页最优布局」：遍历行数 R，取能放进单页且总高最大的
-        function bestLayout(imgs, availW, availH, gap) {
-            let best = null;
-            const N = imgs.length;
-            for (let R = 1; R <= N; R++) {
-                const rows = splitRows(imgs, R);
-                const rowHs = rows.map(r => rowHeight(r, availW, gap));
-                const totalH = rowHs.reduce((a, b) => a + b, 0) + gap * (rows.length - 1);
-                if (totalH <= availH + 0.5) {
-                    const score = totalH; // 越满越好
-                    if (!best || score > best.score) best = { rows, rowHs, score, R };
-                }
+            const total = items.reduce((s, it) => s + it.area, 0);
+            let acc = 0, k = 0;
+            for (let j = 0; j < n; j++) {
+                acc += items[j].area;
+                k = j + 1;
+                if (acc >= total / 2) break;
             }
-            if (best) return best;
-            // 所有 R 都放不下（图过多）→ 退化为逐行贪心，尽量多塞
-            return overflowLayout(imgs, availW, availH, gap);
-        }
-
-        function overflowLayout(imgs, availW, availH, gap) {
-            const minRowH = Math.max(availH * 0.02, 4);
-            let rows = [], cur = [];
-            for (const im of imgs) {
-                const test = cur.concat(im);
-                const h = rowHeight(test, availW, gap);
-                if (cur.length > 0 && h < minRowH) {
-                    rows.push(cur); cur = [im];
-                } else {
-                    cur = test;
-                }
+            if (k >= n) k = n - 1;
+            if (k <= 0) k = 1;
+            const groupA = items.slice(0, k);
+            const groupB = items.slice(k);
+            const ratioA = groupA.reduce((s, it) => s + it.area, 0) / total;
+            // 竖切：A=(w*ratioA,h)  B=(w*(1-ratioA),h)；横切：A=(w,h*ratioA)  B=(w,h*(1-ratioA))
+            const raV = (w * ratioA) / h, rbV = (w * (1 - ratioA)) / h;
+            const raH = w / (h * ratioA), rbH = w / (h * (1 - ratioA));
+            const scoreV = Math.abs(Math.log(raV)) + Math.abs(Math.log(rbV));
+            const scoreH = Math.abs(Math.log(raH)) + Math.abs(Math.log(rbH));
+            if (scoreV <= scoreH) {
+                const wa = w * ratioA;
+                layoutTreemap(groupA, x, y, wa, h, result);
+                layoutTreemap(groupB, x + wa, y, w - wa, h, result);
+            } else {
+                const ha = h * ratioA;
+                layoutTreemap(groupA, x, y, w, ha, result);
+                layoutTreemap(groupB, x, y + ha, w, h - ha, result);
             }
-            if (cur.length) rows.push(cur);
-            const rowHs = rows.map(r => Math.min(rowHeight(r, availW, gap), availH));
-            return { rows, rowHs, score: 0, R: rows.length };
         }
 
-        // 分页：把图片切成若干页，每页尽量塞满
-        function paginate(imgs, availW, availH, gap) {
-            const pages = [];
-            let rest = imgs.slice();
-            let guard = 0;
-            while (rest.length && guard++ < 200) {
-                let k = 1;
-                for (let t = 2; t <= rest.length; t++) {
-                    const sub = rest.slice(0, t);
-                    const lay = bestLayout(sub, availW, availH, gap);
-                    if (lay.score > 0) k = t; else break;
-                }
-                pages.push(rest.slice(0, k));
-                rest = rest.slice(k);
-            }
-            return pages;
+        // 计算每张图在可用区内的矩形布局（treemap）；按原始像素面积降序，整页归一化铺满
+        function computeLayout(imgs, availW, availH) {
+            const items = imgs.map(im => ({ img: im, area: im.width * im.height }))
+                              .sort((a, b) => b.area - a.area);
+            const sum = items.reduce((s, it) => s + it.area, 0);
+            if (sum <= 0) return [];
+            const scale = (availW * availH) / sum;
+            items.forEach(it => it.area *= scale);
+            const result = [];
+            layoutTreemap(items, 0, 0, availW, availH, result);
+            return result;
         }
 
-        // 绘制单页，返回 canvas
-        function drawPage(pageImgs, margin, gap) {
+        // 绘制单张 A4（所有图同页），返回 canvas
+        function drawPage(margin, gap) {
             const availW = PAGE_W - 2 * margin;
             const availH = PAGE_H - 2 * margin;
-            const lay = bestLayout(pageImgs, availW, availH, gap);
+            const layout = computeLayout(uploadedImages, availW, availH);
 
             const canvas = document.createElement('canvas');
             canvas.width = PAGE_W;
@@ -536,26 +503,17 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-            let y = margin;
-            lay.rows.forEach((row, ri) => {
-                const h = lay.rowHs[ri];
-                // 整页只有一张：最大化居中（contain），不裁切
-                if (pageImgs.length === 1 && row.length === 1) {
-                    const im = row[0];
-                    const s = Math.min(availW / im.width, availH / im.height);
-                    const w = im.width * s, hh = im.height * s;
-                    ctx.drawImage(im.el, margin + (availW - w) / 2, margin + (availH - hh) / 2, w, hh);
-                    y += availH + gap;
-                    return;
-                }
-                let x = margin;
-                row.forEach(im => {
-                    const w = h * ratioOf(im);
-                    ctx.drawImage(im.el, x, y, w, h);
-                    x += w + gap;
-                });
-                y += h + gap;
-            });
+            for (const cell of layout) {
+                const im = cell.img;
+                const dw = cell.w - gap;
+                const dh = cell.h - gap;
+                if (dw <= 0 || dh <= 0) continue; // 极端多图+大间距时跳过该格
+                const dx = cell.x + margin + gap / 2;
+                const dy = cell.y + margin + gap / 2;
+                const s = Math.min(dw / im.width, dh / im.height);
+                const w = im.width * s, h = im.height * s;
+                ctx.drawImage(im.el, dx + (dw - w) / 2, dy + (dh - h) / 2, w, h);
+            }
             return canvas;
         }
 
@@ -590,30 +548,20 @@
                 // 预加载
                 for (const im of uploadedImages) im.el = await loadEl(im);
 
-                // 分页 + 逐页绘制
-                const pages = paginate(uploadedImages, availW, availH, gap);
-                const pageURLs = [];
-                for (const p of pages) {
-                    const canvas = drawPage(p, margin, gap);
-                    pageURLs.push(canvas.toDataURL('image/png', 0.95));
-                }
+                // 全部图片浓缩到单张 A4（不分页）
+                const canvas = drawPage(margin, gap);
+                const url = canvas.toDataURL('image/png', 0.95);
 
-                // 展示
-                pagesEl.innerHTML = '';
-                pageURLs.forEach((url, i) => {
-                    const block = document.createElement('div');
-                    block.className = 'page-block';
-                    block.innerHTML = `
-                        <div style="font-size:13px;color:#888;margin-bottom:8px;text-align:center">第 ${i + 1} / ${pageURLs.length} 页</div>
-                        <img src="${url}" alt="第${i + 1}页">
-                        <a class="dl" href="${url}" download="A4排版_第${i + 1}页.png">下载这一页</a>
-                    `;
-                    pagesEl.appendChild(block);
-                });
+                pagesEl.innerHTML = `
+                    <div class="page-block">
+                        <div style="font-size:13px;color:#888;margin-bottom:8px;text-align:center">已浓缩到 1 张 A4（共 ${uploadedImages.length} 张图）</div>
+                        <img src="${url}" alt="A4拼贴">
+                        <a class="dl" href="${url}" download="A4拼贴.png">下载这张 A4</a>
+                    </div>`;
 
-                resultTitle.textContent = `生成结果（共 ${pageURLs.length} 页）`;
+                resultTitle.textContent = `生成结果（1 张 A4 · ${uploadedImages.length} 张图）`;
                 resultContainer.style.display = 'block';
-                resultContainer._urls = pageURLs;
+                resultContainer._urls = [url];
             } catch (error) {
                 showError(`生成失败：${error.message}`);
                 console.error(error);
@@ -624,10 +572,10 @@
 
         function downloadAll() {
             const urls = resultContainer._urls || [];
-            urls.forEach((url, i) => {
+            urls.forEach((url) => {
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `A4排版_第${i + 1}页.png`;
+                a.download = `A4拼贴.png`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
