@@ -271,6 +271,77 @@
             margin: 10px 0;
             display: none;
         }
+
+        /* 打印按钮 */
+        .print-btn {
+            background-color: #607D8B;
+            color: white;
+            padding: 8px 20px;
+            font-size: 14px;
+        }
+
+        .print-btn:hover {
+            background-color: #546E7A;
+        }
+
+        /* ===================== 打印专用 ===================== */
+        /* 直接打印：只输出拼好的那张 A4，整页铺满、零边距，其它 UI 全部隐藏 */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            html,
+            body {
+                background: #fff;
+                padding: 0;
+                margin: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+
+            /* 隐藏除结果区以外的所有控件 */
+            .container>*:not(#result-container) {
+                display: none !important;
+            }
+
+            #result-container {
+                display: block !important;
+                margin: 0;
+                padding: 0;
+            }
+
+            .result-title,
+            .download-all {
+                display: none !important;
+            }
+
+            .page-block {
+                max-width: none;
+                border: none;
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+                background: #fff;
+            }
+
+            /* 只保留拼贴图本身，按钮/说明文字不打印 */
+            .page-block *:not(img) {
+                display: none !important;
+            }
+
+            .page-block img {
+                width: 210mm;
+                height: 297mm;
+                border: none;
+                border-radius: 0;
+                display: block;
+            }
+        }
     </style>
 </head>
 
@@ -556,12 +627,25 @@
                     <div class="page-block">
                         <div style="font-size:13px;color:#888;margin-bottom:8px;text-align:center">已浓缩到 1 张 A4（共 ${uploadedImages.length} 张图）</div>
                         <img src="${url}" alt="A4拼贴">
-                        <a class="dl" href="${url}" download="A4拼贴.png">下载这张 A4</a>
+                        <div style="margin-top:10px;display:flex;gap:14px;justify-content:center;align-items:center">
+                            <a class="dl" href="${url}" download="A4拼贴.png">下载这张 A4</a>
+                            <button class="print-btn" id="print-page-btn">🖨 打印这张 A4</button>
+                        </div>
                     </div>`;
 
                 resultTitle.textContent = `生成结果（1 张 A4 · ${uploadedImages.length} 张图）`;
                 resultContainer.style.display = 'block';
                 resultContainer._urls = [url];
+
+                // 绑定打印：走浏览器原生打印，@media print 已确保只输出这张 A4
+                const printBtn = pagesEl.querySelector('#print-page-btn');
+                if (printBtn) printBtn.addEventListener('click', () => {
+                    if (!(resultContainer._urls && resultContainer._urls.length)) {
+                        showError('请先生成 A4 排版再打印！');
+                        return;
+                    }
+                    window.print();
+                });
             } catch (error) {
                 showError(`生成失败：${error.message}`);
                 console.error(error);
