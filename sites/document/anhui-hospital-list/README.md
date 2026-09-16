@@ -18,6 +18,7 @@
 | 备注 | 悬停医院节点点 ✎ 编辑；右侧「备注」页汇总 |
 | **备份** | 控制条右侧「⇩ 导出我的标记 / ⇧ 导入标记」——把你的标记存成 JSON 文件，换电脑或清浏览器数据后可恢复 |
 | 键盘 | 树节点 `Tab` 可达，`Enter` / `空格` 展开折叠；`Esc` 关闭弹窗（有未保存内容时会确认） |
+| **手机** | 顶部分段切换（医院树 / 星标 / 备注 / 统计 / 概览），树改「下钻式」逐层进入，搜索框常驻，操作按钮常显、触摸目标放大（详见下节） |
 
 ## 数据模型（两层，重要）
 
@@ -69,6 +70,29 @@
 > 1. **本地文件版和网页版的数据是分开的**：`file://`（双击打开）与 `https://`（GitHub Pages）属于不同来源，各自有独立的 localStorage。建议固定用其中一个入口，别混着标。
 > 2. **个人修改不跨设备**：在公司电脑标的星标，回家看不到（那是各自浏览器本地的）。要让所有人看到，必须改默认层的文件。
 
+## 手机端适配（2026-09-16 三）
+
+桌面是「左树 + 右面板」双栏，390px 手机上放不下。改造前实测：树容器被 690px 定宽侧栏挤到只剩 **40px**；`.hospital-actions` 靠 `:hover` 显形，触摸设备上**永远点不到星标**；控制条 7 个按钮换行堆成 855px 高一列。
+
+现在的做法（断点 `820px`，桌面行为完全不变）：
+
+| 变化 | 说明 |
+|---|---|
+| **单列 + 顶部切换器** | 一次只显示一个视图，切换器带星标/备注实时计数 |
+| **树改「下钻式」** | 点地市 → 该市区县 → 该区县医院；顶部面包屑可逐级返回，**手机返回键也能退回上一层**；去掉全部横向缩进与连线，宽度全给内容 |
+| **操作按钮常显** | `@media (hover: none)` —— 星标/备注按钮不再依赖悬停 |
+| **搜索框常驻** | 从侧栏移到切换器下方，两个视图都能用；搜索时只保留「命中医院 → 其区县 → 其城市」这条链 |
+| **触摸目标放大** | 星标/备注/移除等按钮 ≥ 42px，切换器 40px，弹窗按钮 46px |
+| **防 iOS 聚焦放大** | 搜索框与备注输入框字号提到 16px（<16px 时 Safari 会强制放大整页） |
+| **备注弹窗底部弹出** | 全宽、圆角在上，按钮撑满；适配 `env(safe-area-inset-bottom)` |
+| **其他** | `100dvh` 适配地址栏收放、去掉点击高亮、隐藏滚动条、控制条只留「导出/导入」 |
+
+> [!note] 为什么手机上砍掉「展开/折叠」那一排按钮
+> 下钻模式下没有「展开」这个概念（一次只看一层），保留反而误导。地市/区县卡片的 `▼` 点击即进入下一层。
+
+> [!tip] 手机端怎么验收的
+> 用 CDP `Emulation.setDeviceMetricsOverride(mobile=true)` 切真机视口 —— **只有带 `mobile=true` 才会让 `@media (hover: none)` 生效**，单纯缩窗口测不出触摸端的差异。工具：`D:\WorkBuddyData\Tools\ChromeAutomation\mobile_shot.py`。
+
 ## 如何更新「默认星标」（团队深度合作医院）
 
 默认星标由构建脚本写入，**不要手改 `index.html`**（手改会在下次构建时被覆盖）：
@@ -78,7 +102,7 @@
    { hid: 'h_a37f24ae27', name: '首都医科大学附属北京安贞医院安徽医院' }
    ```
    `hid` 是医院节点 `<li id="h_xxxxxxxxxx">` 的 id，**不是医院名**。构建时会校验每个 hid 在源名单里恰好出现 1 次。
-2. 重跑构建（会自动做 11 组校验、写回 `index.html`，并同步一份到 `D:\Tools\安徽省医院名单.html`）：
+2. 重跑构建（会自动做 12 组校验、写回 `index.html`，并同步一份到 `D:\Tools\安徽省医院名单.html`）：
    ```bash
    "C:/Users/xiaob/.workbuddy/binaries/node/versions/22.22.2-3/node.exe" \
      "D:/WorkBuddyData/Workspace/anhui-hospital-list/build.js"
@@ -98,9 +122,9 @@
 ## 维护与构建
 
 ```
-build.js                 从原始名单生成 index.html（11 组自动校验 + 写回 D:\Tools + 同步仓库前检查）
+build.js                 从原始名单生成 index.html（12 组自动校验 + 写回 D:\Tools + 同步仓库前检查）
 app.js                   前端逻辑（注入到 index.html 的 <script> 块）
-verify.js                产物静态自检（语法 / 内嵌数据 / 结构 / 导出导入实现 / 红线：无 fetch·XHR·document.write）
+verify.js                产物静态自检（语法 / 内嵌数据 / 结构 / 导出导入实现 / 移动端就位 / 红线：无 fetch·XHR·document.write）
 
 io-check.js              导出导入闭环（Chrome）：
                          干净起步 → 真实点击加星标+写备注 → 导出(拦截下载并读回 Blob) →
@@ -108,10 +132,23 @@ io-check.js              导出导入闭环（Chrome）：
                          取消默认星标后导入恢复→本机记录自动剔除
 io-reload-a.js / -b.js   同实例内 location.reload() 后的持久化比对（等价于点浏览器刷新）
 storage-check.py         本地数据层闭环（file://，每步 reload 后断言）
+mobile-probe.js          移动端问题探针（改造前量化取证：溢出 / 容器宽度 / 按钮 opacity / 触摸目标 / iOS 字号）
+mobile-check.js          移动端功能验证（iPhone 视口）：切换器 / 三层下钻 / 面包屑返回 /
+                         触摸星标可点可存 / 视图切换 / 列表定位回树 / 搜索过滤 / 触摸目标尺寸 / 底部弹窗
+mobile-diag.js / -diag2  下钻状态与盒模型诊断（排障用）
+desktop-regress.js       桌面回归：确认改造后仍是双栏、hover 才显示按钮、点市仍是展开折叠而非下钻
 online-check.js          线上结构验证（https，查默认星标数 / 按钮 / JS 错误）
 online-storage-check.py  线上数据层闭环（真实托管 origin 上跑同一套场景）
 push-repo.js             幂等推送：同步 index.html + README.md 到 xiaobaidian/tools 并校验 local == remote
 backup/                  改造前的原版快照（构建的输入源，勿删）
+```
+
+移动端验证跑法（`mobile_shot.py` 在 `D:\WorkBuddyData\Tools\ChromeAutomation\`）：
+
+```bash
+python mobile_shot.py --url "file:///D:/WorkBuddyData/Workspace/anhui-hospital-list/index.html" \
+  --device iphone-14 --js-file "D:/WorkBuddyData/Workspace/anhui-hospital-list/mobile-check.js" \
+  --shot "D:/WorkBuddyData/Workspace/anhui-hospital-list/mobile-after.png"
 ```
 
 一次性脚本（`git-tools.js` / `push-to-tools.js` / `sync-readme.js` / `fix-readme.js` / `fix-tree-push.js`）是搭建期的历史遗留，已被 `push-repo.js` 取代，可清理。
@@ -134,8 +171,19 @@ backup/                  改造前的原版快照（构建的输入源，勿删�
 | 混合导入 | 1 有效 + 2 无效 → `imported:1, invalid:2` ✅ |
 | 无差异清理 | 取消默认星标再导入恢复 → 本机记录自动消失 ✅ |
 | 刷新持久化 | `location.reload()` 后 23/2 与刷新前一致，备注完好 ✅ |
+| **手机端**（iPhone 390×844，`mobile=true`） | 无横向溢出 · 树容器 96% 宽（改造前 10%）· 下钻 16市→9区县→11家 · 面包屑返回 · 星标按钮 42×42 且常显、点击可存 ✅ |
+| **桌面回归** | 仍是双栏（树 758 + 侧栏 690）· 按钮仍 `hover` 才显示 · 点「市」仍是展开/折叠（非下钻）· 文案未变 ✅ |
 
 ## 变更记录
+
+- **2026-09-16（三）** 手机端 UI 适配（桌面行为完全不变）：
+  - 移动端断点 `820px`：单列布局 + 顶部视图切换器（医院树 / 星标 / 备注 / 统计 / 概览），切换器带实时计数
+  - 树改「下钻式」：一次一层 + 面包屑返回 + `history.pushState` 支持手机返回键；去掉横向缩进与连线（原树容器在手机上只剩 40px）
+  - **修复触摸端致命问题**：`.hospital-actions` / `.item-actions` 原为 `opacity:0` 且只在 `:hover` 显示 → 触摸设备上星标/备注**永远点不到**；现由 `@media (hover: none), (pointer: coarse)` 常显
+  - 搜索框常驻切换器下方；手机搜索只保留「命中医院 → 区县 → 城市」链路
+  - iOS：搜索框/备注框字号提至 16px（防聚焦强制放大）、`100dvh`、底部安全区
+  - 触摸目标放大（按钮 ≥42px）、备注弹窗改底部弹出、手机端隐藏「展开/折叠」类按钮并缩短「导出/导入」文案
+  - `build.js` 新增第 12 组移动端就位校验；新增 `mobile_shot.py`（CDP 真机视口）与 4 个移动端验证/诊断脚本
 
 - **2026-09-16（二）** 加回「我的标记」备份能力：
   - 新增「⇩ 导出我的标记 / ⇧ 导入标记」（`Blob` 下载 + `FileReader` 读取，**不用 fetch、不改写 HTML**，绕开原版致命问题）

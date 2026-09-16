@@ -466,6 +466,157 @@
         @media (prefers-reduced-motion: reduce) {
             * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }
+
+        /* ======================= 移动端 =======================
+           问题（iPhone 390px 实测）：树容器被 690px 定宽侧栏挤到只剩 40px；
+           .hospital-actions 靠 :hover 显形 —— 触摸设备上等于永远点不到星标；
+           控制条 7 个按钮换行堆成 855px 高；输入框 12px 触发 iOS 聚焦强制放大。
+           做法：单列 + 顶部分段切换器（一次只一个视图）+ 树改下钻式（无缩进）。 */
+        .m-switcher, .m-crumbs { display: none; }
+        .drill-out { display: none !important; }
+
+        @media (max-width: 820px) {
+            /* --- 基础 --- */
+            body { height: 100vh; height: 100dvh; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+            .header { padding: 10px 14px; gap: 8px; }
+            .header-left { gap: 10px; }
+            .header-icon { width: 34px; height: 34px; border-radius: 8px; }
+            .header-icon svg { width: 20px; height: 20px; }
+            .header h1 { font-size: 16px; }
+            .header .subtitle { font-size: 11px; line-height: 1.45; }
+            .stats-bar { gap: 6px; width: 100%; }
+            .stat-item { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+            .footer {
+                padding: 6px 12px; font-size: 10px; line-height: 1.5;
+                padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+            }
+
+            /* --- 单列 + 视图切换：一次只显示一个视图 --- */
+            .container { flex-direction: column; gap: 8px; padding: 8px; }
+            .tree-container, .sidebar { border-radius: 10px; width: 100%; flex: 1; }
+            .tree-container { padding: 10px 12px; }
+            body.mv-tree .sidebar { display: none; }
+            body.mv-panel .tree-container { display: none; }
+            .sidebar-tabs { display: none; }          /* 由顶部分段切换器接管 */
+            .tree-container::-webkit-scrollbar,
+            .sidebar-content::-webkit-scrollbar { width: 0; height: 0; }
+
+            .m-switcher {
+                display: flex; gap: 4px; padding: 4px; flex-shrink: 0;
+                background: var(--card); border-radius: 10px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                overflow-x: auto; -webkit-overflow-scrolling: touch;
+            }
+            .m-sw-btn {
+                flex: 1 0 auto; min-height: 40px; padding: 0 10px;
+                display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+                border: none; background: transparent; border-radius: 7px;
+                font-family: inherit; font-size: 13px; font-weight: 600;
+                color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+                transition: background 0.15s, color 0.15s;
+            }
+            .m-sw-btn.active { background: var(--primary); color: #fff; }
+            .m-sw-n {
+                background: var(--primary-light); color: var(--primary-dark);
+                border-radius: 8px; padding: 0 5px; font-size: 10px; font-weight: 700;
+                min-width: 16px; text-align: center; line-height: 15px;
+            }
+            .m-sw-btn.active .m-sw-n { background: rgba(255,255,255,0.28); color: #fff; }
+
+            /* --- 搜索框常驻（树视图也能搜） --- */
+            .m-search-box { margin: 0; }
+            .m-search-box input { min-height: 42px; font-size: 16px; border-radius: 10px; }
+            .search-hint { margin: 4px 2px 0; font-size: 12px; }
+
+            /* --- 面包屑（下钻返回） --- */
+            .m-crumbs {
+                display: flex; align-items: center; gap: 6px;
+                padding: 8px 10px; margin-bottom: 10px;
+                background: var(--hover); border-radius: 8px; font-size: 13px;
+                position: sticky; top: 0; z-index: 6;
+                overflow-x: auto; -webkit-overflow-scrolling: touch;
+            }
+            .m-crumb { color: var(--primary); cursor: pointer; white-space: nowrap; }
+            .m-crumb.current { color: var(--text); font-weight: 700; cursor: default; }
+            .m-crumb-sep { color: #cbd5e1; flex-shrink: 0; }
+            .m-crumb-count {
+                margin-left: auto; flex-shrink: 0;
+                font-size: 11px; color: var(--text-secondary);
+                background: var(--card); border-radius: 8px; padding: 1px 7px;
+            }
+
+            /* --- 下钻模式：去掉全部缩进与连线，横向宽度全给内容 --- */
+            /* 注意：只能藏「根节点那个按钮」，不能藏 .root-node 本身 ——
+               所有城市/区县/医院都在它的 .children 里，藏了整棵树就空了。 */
+            .tree-container.drill-on .root-node > .node.root { display: none; }
+            .tree-container.drill-on .tree ul { padding-left: 0; }
+            .tree-container.drill-on .tree ul::before,
+            .tree-container.drill-on .tree li::before { display: none; }
+            .tree-container.drill-on .node.city,
+            .tree-container.drill-on .node.district { display: flex; width: 100%; max-width: none; }
+            .tree-container.drill-on .node.city .node-badge,
+            .tree-container.drill-on .node.district .node-badge { margin-left: auto; }
+            .tree-container.drill-on .node.city { font-size: 14px; padding: 12px 14px; }
+            .tree-container.drill-on .node.district { font-size: 13px; padding: 11px 14px; }
+
+            /* --- 树节点 --- */
+            .tree li { padding: 3px 0; }
+            .node { padding: 10px 12px; font-size: 14px; }
+            .node .node-text { flex: 1; min-width: 0; }
+            .node.hospital {
+                display: flex; width: 100%; max-width: none;
+                font-size: 13px; padding: 10px 10px;
+            }
+            .node.hospital .node-text { line-height: 1.45; }
+            .h-tags { margin-left: 4px; }
+
+            /* --- 控制条：手机上「展开/折叠」语义不再适用，只留重置 + 备份 --- */
+            .ctrl-btn[data-view="all"], .ctrl-btn[data-view="none"],
+            .ctrl-btn[data-view="district"], .ctrl-btn[data-view="city"],
+            .ctrl-btn[data-view="reset"],
+            .ctrl-spacer, .ctrl-hint { display: none; }
+            .controls { position: static; gap: 8px; margin-bottom: 0; padding: 0; }
+            .controls .ctrl-btn { flex: 1; min-height: 40px; font-size: 13px; }
+
+            /* --- 触摸目标 ≥ 42px --- */
+            .action-btn { min-width: 42px; min-height: 42px; padding: 8px; }
+            .star-icon, .note-icon { width: 20px; height: 20px; }
+            .tab-btn { min-height: 46px; font-size: 13px; }
+            .filter-btn { min-height: 38px; padding: 8px 14px; font-size: 12px; }
+            .item-action-btn { min-width: 42px; min-height: 42px; }
+            .item-action-btn svg { width: 18px; height: 18px; }
+            .link-btn { padding: 6px 4px; font-size: 12px; }
+
+            /* --- 面板内容 --- */
+            .list-item { padding: 14px; }
+            .list-item:hover { transform: none; }
+            .list-item .item-name { font-size: 14px; }
+            .list-item .item-location { font-size: 12px; }
+            .list-item .item-note { font-size: 13px; }
+            .default-bar { font-size: 12px; padding: 10px; }
+            .overview-title { font-size: 13px; }
+            .bar-row, .bar-label, .bar-value { font-size: 12px; }
+            .bar-label { width: 56px; }
+            .stats-table th, .stats-table td { padding: 11px 8px; font-size: 12px; }
+            .empty-state { padding: 36px 10px; font-size: 13px; }
+
+            /* --- 备注弹窗：底部弹出，按钮撑满 --- */
+            .modal-overlay { align-items: flex-end; }
+            .modal {
+                width: 100%; max-width: 100%;
+                border-radius: 16px 16px 0 0; padding: 18px 16px;
+                padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+            }
+            .modal h3 { font-size: 17px; }
+            .modal textarea { min-height: 130px; font-size: 16px; }
+            .modal-actions { gap: 10px; }
+            .modal-btn { flex: 1; min-height: 46px; font-size: 15px; }
+        }
+
+        /* 无 hover 的设备：操作按钮必须常显，否则星标/备注永远点不到 */
+        @media (hover: none), (pointer: coarse) {
+            .hospital-actions, .list-item .item-actions { opacity: 1; }
+        }
     </style>
     <script type="application/json" id="default-marks">{
   "h_a37f24ae27": {
@@ -582,9 +733,9 @@ $1
                 <button class="ctrl-btn active" data-view="district" onclick="expandToDistrict(this)">展开到区县</button>
                 <button class="ctrl-btn" data-view="city" onclick="expandToCity()">仅地级市</button>
                 <button class="ctrl-btn" data-view="reset" onclick="resetView()">重置</button>
-                <span style="flex:1"></span>
-                <button class="ctrl-btn" onclick="exportMarks()" title="把你在本机做的星标/备注导出成 JSON 文件（备份、换电脑、清浏览器数据前用）">⇩ 导出我的标记</button>
-                <button class="ctrl-btn" onclick="pickImportFile()" title="导入之前导出的 JSON 文件，按医院合并到本机（同名的以文件为准）">⇧ 导入标记</button>
+                <span class="ctrl-spacer" style="flex:1"></span>
+                <button class="ctrl-btn" data-short="⇩ 导出" onclick="exportMarks()" title="把你在本机做的星标/备注导出成 JSON 文件（备份、换电脑、清浏览器数据前用）">⇩ 导出我的标记</button>
+                <button class="ctrl-btn" data-short="⇧ 导入" onclick="pickImportFile()" title="导入之前导出的 JSON 文件，按医院合并到本机（同名的以文件为准）">⇧ 导入标记</button>
                 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
                 <span class="ctrl-hint">星标/备注自动保存在本机浏览器，可导出备份</span>
             </div>
@@ -9907,6 +10058,15 @@ $1
     var li = nodeEl.parentElement;
     var ul = directChild(li, '.children');
     if (!ul) return;
+
+    /* 手机上（树视图）：「点击」= 下钻一层，而不是展开/折叠。
+       桌面语义（展开收起）在触摸端没有意义 —— 缩进吃掉宽度、还得多点一次。 */
+    if (isMobile() && mView === 'tree') {
+      if (li.classList.contains('city-node')) { drillTo(1, nodeTextOf(li)); return; }
+      if (li.classList.contains('district-node')) { drillTo(2, nodeTextOf(li)); return; }
+      if (li.classList.contains('root-node')) { drillTo(0); return; }
+      return;
+    }
     setNodeCollapsed(nodeEl, ul.style.display !== 'none');
   }
 
@@ -9958,7 +10118,13 @@ $1
     clearHighlight();
     restoreSearchExpand();
     setFilter('all');
-    expandToDistrict();
+    if (isMobile()) {
+      drillPath = [];                 // 手机上「重置」= 回到各地市顶层
+      setMView('tree', null);
+      applyDrill();
+    } else {
+      expandToDistrict();
+    }
     var box = document.querySelector('.tree-container');
     if (box) box.scrollTop = 0;
     updateCtrlButtons('district');
@@ -10111,6 +10277,7 @@ $1
         '<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
         '<div>暂无备注医院</div><div style="margin-top:4px;font-size:11px">悬停医院节点，点击 ✎ 添加</div></div>';
     }
+    syncMobileCounts();
   }
 
   /* ======================= 定位 ======================= */
@@ -10118,6 +10285,16 @@ $1
   function locateHospital(hid) {
     var li = document.getElementById(hid);
     if (!li) return;
+
+    /* 手机上从「星标 / 备注」列表点过来 → 先切回树视图，并下钻到该院所在区县 */
+    if (isMobile()) {
+      var city = li.dataset.city || '';
+      var district = li.dataset.district || '';
+      drillPath = district ? [city, district] : (city ? [city] : []);
+      setMView('tree', null);
+      applyDrill();
+    }
+
     // 逐级展开父节点
     var parent = li.parentElement;
     while (parent && parent.classList) {
@@ -10176,19 +10353,25 @@ $1
     if (!kw) {
       setSearchHint('');
       restoreSearchExpand();                               // 清空关键词 → 还原搜索前的展开状态
+      if (isMobile()) applyDrill();                        // 手机端还要还原下钻层级
       var box = document.querySelector('.tree-container');
       if (box) box.scrollTop = 0;
       return;
     }
     if (!preSearchOpen) preSearchOpen = snapshotExpand();    // 首次搜索前先存快照
 
+    // 手机上搜索是跨市的，先退出下钻，否则只会命中当前层
+    if (isMobile() && mView === 'tree' && drillPath.length) { drillPath = []; applyDrill(); }
+
     var hits = 0;
     var first = null;
+    var hitIds = {};
     document.querySelectorAll('.hospital-node').forEach(function (li) {
       var textEl = li.querySelector('.node-text');
       if (!textEl) return;
       if (textEl.textContent.toLowerCase().indexOf(kw) >= 0) {
         hits++;
+        hitIds[li.id] = true;
         textEl.classList.add('highlight');
         if (!first) first = li;
         var parent = li.parentElement;
@@ -10205,6 +10388,30 @@ $1
         }
       }
     });
+
+    /* 手机上只留「命中医院 → 其区县 → 其城市」这条链。
+       否则 530 家平铺 + 121 个空分组，一屏看不了两条。 */
+    if (isMobile()) {
+      document.querySelectorAll('.hospital-node').forEach(function (li) {
+        li.classList.toggle('drill-out', !hitIds[li.id]);
+      });
+      document.querySelectorAll('.district-node').forEach(function (dLi) {
+        var any = false;
+        dLi.querySelectorAll(':scope > .children > .hospital-node').forEach(function (hLi) {
+          if (hitIds[hLi.id]) any = true;
+        });
+        dLi.classList.toggle('drill-out', !any);
+      });
+      document.querySelectorAll('.city-node').forEach(function (cLi) {
+        var any = false;
+        cLi.querySelectorAll(':scope > .children > .district-node').forEach(function (dLi) {
+          if (!dLi.classList.contains('drill-out')) any = true;
+        });
+        cLi.classList.toggle('drill-out', !any);
+      });
+      renderCrumbs();
+    }
+
     setSearchHint(hits ? '命中 ' + hits + ' 家' : '没有匹配的医院');
     if (first) {
       requestAnimationFrame(function () {
@@ -10580,13 +10787,30 @@ $1
   function mountSearchBox() {
     var box = document.querySelector('.search-box');
     var content = document.querySelector('.sidebar-content');
+    var container = document.querySelector('.container');
     if (!box || !content) return;
-    // 从「统计」面板挪到侧栏顶部，任何 tab 下都能用（不动 HTML 结构）
-    var hint = document.createElement('div');
-    hint.id = 'searchHint';
-    hint.className = 'search-hint';
-    content.insertBefore(hint, content.firstChild);
-    content.insertBefore(box, content.firstChild);
+
+    var hint = document.getElementById('searchHint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.id = 'searchHint';
+      hint.className = 'search-hint';
+    }
+
+    /* 手机上搜索框常驻在切换器下方（树视图 / 面板视图都能用）。
+       否则得先切到「星标」面板才看得到搜索框，而搜索结果又显示在树里，很割裂。 */
+    if (isMobile() && container) {
+      var sw = document.getElementById('mSwitcher');
+      if (sw && sw.parentNode === container) container.insertBefore(box, sw.nextSibling);
+      else container.insertBefore(box, container.firstChild);
+      box.parentNode.insertBefore(hint, box.nextSibling);
+      box.classList.add('m-search-box');
+    } else {
+      // 桌面：从「统计」面板挪到侧栏顶部，任何 tab 下都能用（不动 HTML 结构）
+      content.insertBefore(hint, content.firstChild);
+      content.insertBefore(box, content.firstChild);
+      box.classList.remove('m-search-box');
+    }
   }
 
   /* ======================= 可访问性 ======================= */
@@ -10616,6 +10840,234 @@ $1
       if (sb) sb.setAttribute('aria-label', name + '：切换星标');
       if (nb) nb.setAttribute('aria-label', name + '：编辑备注');
     });
+  }
+
+  /* ======================= 移动端：视图切换 + 层级下钻 =======================
+     桌面是「左树 + 右面板」双栏，390px 手机上放不下 —— 实测树容器被挤到只剩
+     40px，而且 .hospital-actions 靠 :hover 显形，触摸设备上等于永远点不到星标。
+     手机上改为：
+       ① 顶部分段切换器，一次只显示一个视图（医院树 / 星标 / 备注 / 统计 / 概览）
+       ② 树改为「下钻式」：一次只看一层，面包屑返回，去掉全部横向缩进
+       ③ 操作按钮常显、触摸目标放大、输入框 16px 防 iOS 聚焦放大
+     所有分支都由 isMobile() 挡着，桌面行为一字不变。
+  ========================================================================= */
+
+  var MQ = window.matchMedia('(max-width: 820px)');
+  function isMobile() { return MQ.matches; }
+
+  var mView = 'tree';     // tree | stars | notes | stats | overview
+  var drillPath = [];     // [] 各地市 → ['合肥市'] 区县 → ['合肥市','庐阳区'] 医院
+
+  function nodeTextOf(li) {
+    var node = li ? directChild(li, '.node') : null;
+    var text = node ? node.querySelector('.node-text') : null;
+    return text ? text.textContent.trim() : '';
+  }
+
+  /* ---------- 切换器 + 面包屑（JS 动态建，构建脚本只负责 CSS） ---------- */
+
+  function buildMobileChrome() {
+    var container = document.querySelector('.container');
+    var treeBox = document.querySelector('.tree-container');
+
+    if (container && !document.getElementById('mSwitcher')) {
+      var sw = document.createElement('div');
+      sw.id = 'mSwitcher';
+      sw.className = 'm-switcher';
+      sw.setAttribute('role', 'tablist');
+      sw.setAttribute('aria-label', '视图切换');
+      sw.innerHTML =
+        '<button class="m-sw-btn" role="tab" data-mview="tree" onclick="setMView(&quot;tree&quot;,this)">医院树</button>' +
+        '<button class="m-sw-btn" role="tab" data-mview="stars" onclick="setMView(&quot;stars&quot;,this)">星标<span class="m-sw-n" id="mSwStars">0</span></button>' +
+        '<button class="m-sw-btn" role="tab" data-mview="notes" onclick="setMView(&quot;notes&quot;,this)">备注<span class="m-sw-n" id="mSwNotes">0</span></button>' +
+        '<button class="m-sw-btn" role="tab" data-mview="stats" onclick="setMView(&quot;stats&quot;,this)">统计</button>' +
+        '<button class="m-sw-btn" role="tab" data-mview="overview" onclick="setMView(&quot;overview&quot;,this)">概览</button>';
+      container.insertBefore(sw, container.firstChild);
+    }
+
+    if (treeBox && !document.getElementById('mCrumbs')) {
+      var cr = document.createElement('div');
+      cr.id = 'mCrumbs';
+      cr.className = 'm-crumbs';
+      var controls = treeBox.querySelector('.controls');
+      if (controls && controls.nextSibling) treeBox.insertBefore(cr, controls.nextSibling);
+      else treeBox.insertBefore(cr, treeBox.firstChild);
+    }
+    return document.getElementById('mSwitcher');
+  }
+
+  function syncMobileCounts() {
+    var sEl = document.getElementById('mSwStars');
+    var nEl = document.getElementById('mSwNotes');
+    if (!sEl && !nEl) return;
+    var stars = 0, notes = 0;
+    document.querySelectorAll('.hospital-node').forEach(function (li) {
+      var m = getMark(li.id);
+      if (m.star) stars++;
+      if (m.note) notes++;
+    });
+    if (sEl) sEl.textContent = stars;
+    if (nEl) nEl.textContent = notes;
+  }
+
+  /* 手机上替换掉「悬停」「展开/折叠」这类桌面语义的文案 */
+  function applyMobileLabels() {
+    document.querySelectorAll('.ctrl-btn[data-short]').forEach(function (b) {
+      if (!b.dataset.full) b.dataset.full = b.textContent.trim();
+      b.textContent = isMobile() ? b.dataset.short : b.dataset.full;
+    });
+    var sub = document.querySelector('.header .subtitle');
+    if (sub) {
+      if (!sub.dataset.full) sub.dataset.full = sub.textContent;
+      sub.textContent = isMobile()
+        ? sub.dataset.full.replace('点击节点展开/折叠，悬停医院可星标/备注', '点击地市逐层进入，医院右侧 ☆ 可星标')
+        : sub.dataset.full;
+    }
+  }
+
+  /* ---------- 视图切换 ---------- */
+
+  function setMView(v, btn) {
+    if (!isMobile()) return;
+    mView = v;
+    document.body.classList.toggle('mv-tree', v === 'tree');
+    document.body.classList.toggle('mv-panel', v !== 'tree');
+    document.querySelectorAll('.m-sw-btn').forEach(function (b) {
+      var on = b.dataset.mview === v;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    if (v === 'tree') {
+      applyDrill();
+    } else {
+      switchTab(v, null);
+      var sc = document.querySelector('.sidebar-content');
+      if (sc) sc.scrollTop = 0;
+    }
+  }
+
+  /* ---------- 树：层级下钻 ---------- */
+
+  function drillTo(depth, name, fromHistory) {
+    var prevLen = drillPath.length;
+    if (depth <= 0) drillPath = [];
+    else if (depth === 1) drillPath = [name || drillPath[0]];
+    else drillPath = [drillPath[0], name || drillPath[1]];
+    applyDrill();
+    var box = document.querySelector('.tree-container');
+    if (box) box.scrollTop = 0;
+    // 只在「往下钻」时记一条历史，手机返回键即可逐层退回
+    if (isMobile() && !fromHistory && drillPath.length > prevLen) {
+      history.pushState({ drill: drillPath.slice() }, '');
+    }
+  }
+
+  window.addEventListener('popstate', function (e) {
+    if (!isMobile()) return;
+    drillPath = (e.state && e.state.drill) ? e.state.drill.slice() : [];
+    applyDrill();
+  });
+
+  function applyDrill() {
+    var box = document.querySelector('.tree-container');
+    if (!box) return;
+    var on = isMobile() && mView === 'tree';
+
+    document.querySelectorAll('.drill-current').forEach(function (el) { el.classList.remove('drill-current'); });
+
+    if (!on) {
+      box.classList.remove('drill-on');
+      document.querySelectorAll('.drill-out').forEach(function (el) { el.classList.remove('drill-out'); });
+      renderCrumbs();
+      return;
+    }
+
+    box.classList.add('drill-on');
+    // 下钻模式接管层级显隐；顺手清掉折叠态，免得箭头方向误导
+    document.querySelectorAll('.children').forEach(function (el) { el.style.display = ''; });
+    document.querySelectorAll('.node').forEach(function (el) {
+      el.classList.remove('collapsed');
+      if (el.hasAttribute('aria-expanded')) el.setAttribute('aria-expanded', 'true');
+    });
+
+    document.querySelectorAll('.city-node, .district-node, .hospital-node').forEach(function (li) {
+      li.classList.add('drill-out');
+    });
+
+    document.querySelectorAll('#tree-root > li > .children > .city-node').forEach(function (cityLi) {
+      if (drillPath.length === 0) { cityLi.classList.remove('drill-out'); return; }
+      if (nodeTextOf(cityLi) !== drillPath[0]) return;
+      cityLi.classList.remove('drill-out');
+      cityLi.classList.add('drill-current');
+      cityLi.querySelectorAll(':scope > .children > .district-node').forEach(function (distLi) {
+        if (drillPath.length === 1) { distLi.classList.remove('drill-out'); return; }
+        if (nodeTextOf(distLi) !== drillPath[1]) return;
+        distLi.classList.remove('drill-out');
+        distLi.classList.add('drill-current');
+        distLi.querySelectorAll(':scope > .children > .hospital-node').forEach(function (hLi) {
+          hLi.classList.remove('drill-out');
+        });
+      });
+    });
+
+    renderCrumbs();
+  }
+
+  function renderCrumbs() {
+    var box = document.getElementById('mCrumbs');
+    if (!box) return;
+    if (!isMobile() || mView !== 'tree') { box.style.display = 'none'; return; }
+    // 搜索状态下树已被过滤成「命中链路」，层级计数会误导，直接收起
+    var sInput = document.getElementById('searchInput');
+    if (sInput && sInput.value.trim()) { box.style.display = 'none'; return; }
+    box.style.display = '';
+
+    var treeBox = document.querySelector('.tree-container');
+    var html = '<span class="m-crumb' + (drillPath.length === 0 ? ' current' : '') +
+      '" onclick="drillTo(0)">各地市</span>';
+    drillPath.forEach(function (p, i) {
+      html += '<span class="m-crumb-sep">›</span><span class="m-crumb' +
+        (i === drillPath.length - 1 ? ' current' : '') +
+        '" onclick="drillTo(' + (i + 1) + ')">' + esc(p) + '</span>';
+    });
+
+    var sel = drillPath.length === 0 ? '.city-node'
+      : (drillPath.length === 1 ? '.district-node' : '.hospital-node');
+    var n = treeBox ? treeBox.querySelectorAll(sel + ':not(.drill-out)').length : 0;
+    html += '<span class="m-crumb-count">' + n + (drillPath.length === 2 ? ' 家' : ' 项') + '</span>';
+
+    box.innerHTML = html;
+    box.scrollLeft = 0;
+  }
+
+  /* ---------- 视口变化（转屏 / 拉宽窗口） ---------- */
+
+  function onViewportChange() {
+    buildMobileChrome();
+    mountSearchBox();
+    applyMobileLabels();
+    if (isMobile()) {
+      setMView(mView, null);
+      applyDrill();
+      syncMobileCounts();
+    } else {
+      drillPath = [];
+      document.body.classList.remove('mv-tree', 'mv-panel');
+      applyDrill();
+    }
+  }
+
+  function initMobile() {
+    buildMobileChrome();
+    mountSearchBox();
+    syncMobileCounts();
+    applyMobileLabels();
+    if (MQ.addEventListener) MQ.addEventListener('change', onViewportChange);
+    else MQ.addListener(onViewportChange);
+    if (isMobile()) {
+      setMView('tree', null);
+      applyDrill();
+    }
   }
 
   /* ======================= 初始化 ======================= */
@@ -10651,6 +11103,7 @@ $1
     updateSidebar();
     expandToDistrict();
     bindGlobalKeys();
+    initMobile();      // 手机端：建切换器/面包屑，切到树视图并进入下钻模式
   }
 
   /* ---------- 暴露给内联 onclick ---------- */
@@ -10672,11 +11125,16 @@ $1
   window.restoreDefaults = restoreDefaults;
   window.exportMarks = exportMarks;
   window.pickImportFile = pickImportFile;
+  window.setMView = setMView;
+  window.drillTo = drillTo;
 
   /* ---------- 测试钩子（无副作用，供自动化验证导出/导入链路） ---------- */
   window.__buildExportPayload = buildExportPayload;
   window.__importFromText = importFromText;
   window.__countUserEdits = countUserEdits;
+  window.__mState = function () {
+    return { isMobile: isMobile(), mView: mView, drillPath: drillPath.slice() };
+  };
   window.__refreshMarks = function () {
     loadMarks(); updateAllHospitalUI(); updateSidebar(); mountDefaultBar();
   };
