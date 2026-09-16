@@ -13,7 +13,7 @@ Sanfre 的个人小工具 & 静态网页集，由 WorkBuddy（小微）维护。
 │   │   └── a4-image-layout/
 │   └── document/      #   文档类工具
 │       ├── outbound-order/
-│   │       └── anhui-hospital-list/
+│       └── anhui-hospital-list/
 └── tools/             # 脚本/CLI 小工具，按类型再分子文件夹
     ├── mailbox/       #   邮箱管理类（5 个）
     │   ├── audit/
