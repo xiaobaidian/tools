@@ -122,9 +122,9 @@
 ## 维护与构建
 
 ```
-build.js                 从原始名单生成 index.html（12 组自动校验 + 写回 D:\Tools + 同步仓库前检查）
+build.js                 从原始名单生成 index.html（13 组自动校验 + 写回 D:\Tools + 同步仓库前检查）
 app.js                   前端逻辑（注入到 index.html 的 <script> 块）
-verify.js                产物静态自检（语法 / 内嵌数据 / 结构 / 导出导入实现 / 移动端就位 / 红线：无 fetch·XHR·document.write）
+verify.js                产物静态自检（语法 / 内嵌数据 / 结构 / HTML 骨架完整性 / 导出导入实现 / 移动端就位 / 红线：无 fetch·XHR·document.write）
 
 io-check.js              导出导入闭环（Chrome）：
                          干净起步 → 真实点击加星标+写备注 → 导出(拦截下载并读回 Blob) →
@@ -137,6 +137,7 @@ mobile-check.js          移动端功能验证（iPhone 视口）：切换器 / 
                          触摸星标可点可存 / 视图切换 / 列表定位回树 / 搜索过滤 / 触摸目标尺寸 / 底部弹窗
 mobile-diag.js / -diag2  下钻状态与盒模型诊断（排障用）
 desktop-regress.js       桌面回归：确认改造后仍是双栏、hover 才显示按钮、点市仍是展开折叠而非下钻
+dollar-check.js          HTML 骨架专项：遍历全部可见文本节点断言无 "$" 残留（防 replace 的 $N 陷阱）
 online-check.js          线上结构验证（https，查默认星标数 / 按钮 / JS 错误）
 online-storage-check.py  线上数据层闭环（真实托管 origin 上跑同一套场景）
 push-repo.js             幂等推送：同步 index.html + README.md 到 xiaobaidian/tools 并校验 local == remote
@@ -175,6 +176,12 @@ python mobile_shot.py --url "file:///D:/WorkBuddyData/Workspace/anhui-hospital-l
 | **桌面回归** | 仍是双栏（树 758 + 侧栏 690）· 按钮仍 `hover` 才显示 · 点「市」仍是展开/折叠（非下钻）· 文案未变 ✅ |
 
 ## 变更记录
+
+- **2026-09-16（四）** 修复页面左上角多出一行 `$1`：
+  - **根因**：`build.js` 里写了 `s.replace(/(<body>)/, () => '$1\r\n<noscript>…')`。`replace` 的第二个参数是**函数**时，返回值按**字面文本**处理、**不做 `$N` 展开** —— 于是 `$1` 被原样写进 HTML，而 `<body>` 标签本身被整个替换掉。浏览器会自动补出 body，`$1` 就成了页面里第一个可见文本（左上角）。此问题自首次改造起就存在。
+  - **修复**：改为回填 `match[0]`（`s.replace(/<body(\s[^>]*)?>/, m => m + '…')`），完全不依赖 `$` 语义
+  - **防回归**：`build.js` 新增第 13 组「HTML 骨架完整性」校验；`verify.js` 新增 4 项静态红线 —— `<body>` 唯一、位于 `</head>` 之后、两者之间无 `$` 字符、产物内无 `$N`/`$&`/`$$` 字面量
+  - 新增 `dollar-check.js`（浏览器端遍历所有可见文本节点，断言无 `$` 残留）
 
 - **2026-09-16（三）** 手机端 UI 适配（桌面行为完全不变）：
   - 移动端断点 `820px`：单列布局 + 顶部视图切换器（医院树 / 星标 / 备注 / 统计 / 概览），切换器带实时计数
