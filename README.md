@@ -36,6 +36,8 @@ Sanfre 的个人小工具 & 静态网页集，由 WorkBuddy（小微）维护。
 
 ### 📄 文档工具
 - **出库单生成器** · [在线打开](https://xiaobaidian.github.io/tools/sites/document/outbound-order/) · `sites/document/outbound-order` · Excel/粘贴生成出库单，可打印/复制/导出PDF
+- **安徽省医院名单** · [在线打开](https://xiaobaidian.github.io/tools/sites/document/anhui-hospital-list/) · `sites/document/anhui-hospital-list` · 安徽 16 地市 / 105 县区 / 530 家医院三级浏览，搜索·筛选·星标·备注，内置 21 家深度合作医院默认星标
+- **安徽省医院名单** · [在线打开](https://xiaobaidian.github.io/tools/sites/document/anhui-hospital-list/) · `sites/document/anhui-hospital-list` · 安徽 16 地市 / 105 县区 / 530 家医院三级浏览，搜索·筛选·星标·备注，内置 21 家深度合作医院默认星标
 
 ### 🛠️ 仓库维护
 - **仓库维护 repo-admin** · `tools/repo-admin` · 本仓库自身的初始化/重建门户脚本

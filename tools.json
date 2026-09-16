@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-27",
+  "updated": "2026-09-16",
   "tools": [
     {
       "name": "邮箱体检 mailbox-audit",
@@ -110,6 +110,21 @@
         "仓储"
       ],
       "updated": "2026-08-27"
+    },
+    {
+      "name": "安徽省医院名单",
+      "emoji": "🏥",
+      "type": "web",
+      "category": "📄 文档工具",
+      "folder": "sites/document/anhui-hospital-list",
+      "desc": "安徽 16 地市 / 105 县区 / 530 家医院三级浏览，搜索·筛选·星标·备注，内置团队合作医院默认星标",
+      "tags": [
+        "医院",
+        "名单",
+        "安徽",
+        "资料"
+      ],
+      "updated": "2026-09-16"
     }
   ]
 }
