@@ -39,14 +39,20 @@
 
 ## 如何更新「默认星标」（团队深度合作医院）
 
-默认星标写在文件里，改它需要改文件并提交：
+默认星标由构建脚本写入，**不要手改 `index.html`**（手改会在下次构建时被覆盖）：
 
-1. 编辑 `index.html` 里的 `<script type="application/json" id="default-marks">` 块，形如：
+1. 编辑 `build.js` 里的默认星标数据表，形如：
    ```json
    { "h_a37f24ae27": { "star": true, "note": "" } }
    ```
    key 是医院的 `hid`（医院节点 `<li id="h_xxxxxxxxxx">`），不是医院名。
-2. 提交到仓库 `main` 分支，GitHub Pages 自动重建，所有访客刷新即见。
+2. 重跑构建：
+   ```bash
+   "C:/Users/xiaob/.workbuddy/binaries/node/versions/22.22.2-3/node.exe" \
+     "D:/WorkBuddyData/Workspace/anhui-hospital-list/build.js"
+   ```
+   构建脚本内置 10 项校验（默认条目数、`</script>` 计数、按钮增删、数据条数等），不通过会直接报错。
+3. 把产物 `index.html` 提交到仓库，GitHub Pages 自动重建，所有访客刷新即见。
 
 > 每次新增/删除医院会使现有 `hid` 变化，需要同步更新本块。
 
@@ -55,11 +61,29 @@
 本页由构建脚本从原始名单生成，改动集中在头部几行、控制条、内嵌数据槽和整个 `<script>` 块；10161 行的数据树原样保留。
 
 ```
-build.js          从原始名单生成 index.html（含 10 项自动校验）
-app.js            前端逻辑（注入到 index.html 的 <script> 块）
-verify.js         产物静态自检（语法 / 数据 / 结构 / 残留引用）
-backup/           改造前的原始版本
+build.js                 从原始名单生成 index.html（含 10 项自动校验）
+app.js                   前端逻辑（注入到 index.html 的 <script> 块）
+verify.js                产物静态自检（语法 / 数据 / 结构 / 残留引用）
+chrome-check.js          可见 Chrome 本地交互测试（file://）
+storage-check.py         本地数据层闭环测试（干净初始 / 加星 / 取消 / 备注 / 恢复默认，每步 reload 后断言）
+online-check.js          线上结构验证（https，查默认星标数 / 旧按钮残留 / JS 错误）
+online-storage-check.py  线上数据层闭环测试（真实托管 origin 上跑同一套场景）
+backup/                  改造前的原始版本
 ```
+
+> 数据层改动**必须跑 `storage-check.py` / `online-storage-check.py`**。
+> 「改 → reload → 看有没有保住」这类问题手工点击几乎发现不了，只有场景化自动化能抓到（本项目就靠它抓出过一次"用户改动被静默丢弃"的致命缺陷）。
+
+## 线上验收结论（2026-09-16）
+
+| 检查项 | 结果 |
+|---|---|
+| 协议 | `https:` ✅ |
+| 医院 / 地市 / 区县 | 530 / 16 / 105 ✅ |
+| **默认星标数** | **21**（所有访客一致）✅ |
+| 遗留的导出/导入/保存按钮 | 0 ✅ |
+| JS 错误 | 0 ✅ |
+| 数据层闭环 P0–P4 | 全部通过 ✅ |
 
 ## 变更记录
 
