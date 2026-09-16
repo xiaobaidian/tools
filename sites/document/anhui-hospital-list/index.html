@@ -583,7 +583,10 @@ $1
                 <button class="ctrl-btn" data-view="city" onclick="expandToCity()">仅地级市</button>
                 <button class="ctrl-btn" data-view="reset" onclick="resetView()">重置</button>
                 <span style="flex:1"></span>
-                <span class="ctrl-hint">星标/备注自动保存在本机浏览器</span>
+                <button class="ctrl-btn" onclick="exportMarks()" title="把你在本机做的星标/备注导出成 JSON 文件（备份、换电脑、清浏览器数据前用）">⇩ 导出我的标记</button>
+                <button class="ctrl-btn" onclick="pickImportFile()" title="导入之前导出的 JSON 文件，按医院合并到本机（同名的以文件为准）">⇧ 导入标记</button>
+                <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+                <span class="ctrl-hint">星标/备注自动保存在本机浏览器，可导出备份</span>
             </div>
             <ul class="tree" id="tree-root">
   <li class="root-node">
@@ -10310,16 +10313,27 @@ $1
 
   /* ======================= 默认星标说明 / 恢复 ======================= */
 
+  function defaultStarCount() {
+    var n = 0;
+    for (var k in defaults) if (defaults[k] && defaults[k].star) n++;
+    return n;
+  }
+
+  /** 幂等：重复调用只更新文案，不会重复插入 DOM */
   function mountDefaultBar() {
     var panel = document.getElementById('panel-stars');
     if (!panel) return;
-    var bar = document.createElement('div');
-    bar.className = 'default-bar';
-    var n = 0;
-    for (var k in defaults) if (defaults[k] && defaults[k].star) n++;
-    bar.innerHTML = '<span>页面内置 <b>' + n + '</b> 家默认星标（团队合作医院）</span>' +
+    var bar = panel.querySelector('.default-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'default-bar';
+      panel.insertBefore(bar, panel.firstChild);
+    }
+    var mine = countUserEdits();
+    bar.innerHTML =
+      '<span>页面内置 <b>' + defaultStarCount() + '</b> 家默认星标（团队合作医院）' +
+      (mine ? ' · 本机改动 <b>' + mine + '</b> 条' : '') + '</span>' +
       '<button class="link-btn" onclick="restoreDefaults()" title="清除本机对星标/备注的所有修改，恢复成页面内置状态">恢复默认</button>';
-    panel.insertBefore(bar, panel.firstChild);
   }
 
   function restoreDefaults() {
@@ -10329,6 +10343,236 @@ $1
       localStorage.removeItem('anhui_hospital_marks');   // 旧版遗留的 key，顺手清掉
     } catch (e) { /* ignore */ }
     location.reload();
+  }
+
+  /* ======================= 我的标记：导出 / 导入 =======================
+     设计约束（为什么长这样，别改回去）
+       · 只用 Blob 下载 + FileReader 读取 —— 绝不 fetch 本地文件、绝不改写 HTML 本体。
+         原版（2026-09-16 改造前）就死在「本地文件读取」与 &lt;/script&gt; 截断上，别再走这两条路。
+       · 导出内容 = 本机相对「页面内置默认星标」的改动，不是全量 530 家。
+         文件很小（几十条也就几 KB），也天然不含默认层信息。
+       · 导入 = 按 hid 合并覆盖：同一家医院以文件为准，本机其他标记保留；
+         导入后若某条与默认层一致，会自动从 localStorage 剔除（不留下无差异的垃圾记录）。
+     ==================================================================== */
+
+  var EXPORT_FORMAT = 'anhui-hospital-marks';
+  var EXPORT_VERSION = 1;
+
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+
+  function fileStamp() {
+    var d = new Date();
+    return '' + d.getFullYear() + two(d.getMonth() + 1) + two(d.getDate()) +
+      '-' + two(d.getHours()) + two(d.getMinutes());
+  }
+
+  function hospitalLabel(hid) {
+    var li = document.getElementById(hid);
+    if (!li) return '';
+    return [li.dataset.city, li.dataset.district, li.dataset.name].filter(Boolean).join(' / ');
+  }
+
+  /** 汇总本机相对默认层的改动 —— 导出 / 计数 / 落盘共用这一个口径 */
+  function collectUserEdits() {
+    var out = {};
+    for (var hid in marks) {
+      var m = marks[hid];
+      if (typeof m.t !== 'number') continue;      // 只有用户真实编辑过的才算
+      if (isSameAsDefault(hid, m)) continue;
+      out[hid] = { star: !!m.star, note: m.note || '', t: m.t };
+    }
+    return out;
+  }
+
+  function countUserEdits() {
+    var n = 0;
+    for (var k in collectUserEdits()) n++;
+    return n;
+  }
+
+  function buildExportPayload() {
+    var edits = collectUserEdits();
+    var items = [];
+    for (var hid in edits) {
+      items.push({
+        hid: hid,
+        name: hospitalLabel(hid),
+        star: edits[hid].star,
+        note: edits[hid].note,
+        t: edits[hid].t
+      });
+    }
+    items.sort(function (a, b) { return a.name < b.name ? -1 : (a.name > b.name ? 1 : 0); });
+    return {
+      format: EXPORT_FORMAT,
+      version: EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      page: location.href,
+      count: items.length,
+      hint: '这是「我的标记」备份文件，只包含本机相对页面内置默认星标的改动。' +
+            '在同一个页面上点「导入标记」即可合并回来，可用于换电脑或清浏览器数据后恢复。',
+      marks: items
+    };
+  }
+
+  function downloadText(filename, text) {
+    try {
+      var blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.rel = 'noopener';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        if (a.parentNode) a.parentNode.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 2000);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function exportMarks() {
+    var payload = buildExportPayload();
+    if (!payload.count) {
+      alert('本机还没有你自己的标记改动，没有可导出的内容。\n\n' +
+        '（页面内置的 ' + defaultStarCount() + ' 家默认星标写在文件里、对所有访客可见，不需要导出。）');
+      return { ok: false, count: 0 };
+    }
+    var text = JSON.stringify(payload, null, 2);
+    var fname = '安徽省医院名单-我的标记-' + fileStamp() + '.json';
+    if (!downloadText(fname, text)) {
+      // 极老浏览器兜底：手动复制
+      window.prompt('当前浏览器不支持直接下载，请全选复制并保存为 ' + fname, text);
+      return { ok: false, count: payload.count, fallback: true };
+    }
+    return { ok: true, count: payload.count, filename: fname };
+  }
+
+  /* ---------- 导入 ---------- */
+
+  /** 归一化成 [{hid, star, note, t}]，兼容四种来源格式 */
+  function normalizeEntries(data) {
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.marks)) return data.marks;
+    if (data && data.marks && typeof data.marks === 'object') {
+      return Object.keys(data.marks).map(function (k) {
+        var v = data.marks[k] || {};
+        return { hid: k, star: v.star, note: v.note, t: v.t };
+      });
+    }
+    if (data && typeof data === 'object') {     // 裸对象 / localStorage 原始内容
+      return Object.keys(data).map(function (k) {
+        var v = data[k];
+        if (!v || typeof v !== 'object') return { hid: k };
+        return { hid: k, star: v.star, note: v.note, t: v.t };
+      });
+    }
+    return [];
+  }
+
+  /** 纯解析、无副作用：返回 {items, invalid} 或 {error} */
+  function parseImportText(text) {
+    var data;
+    try {
+      data = JSON.parse(String(text || '').replace(/^\uFEFF/, ''));
+    } catch (e) { return { error: '不是合法的 JSON 文件' }; }
+
+    var list = normalizeEntries(data);
+    if (!list.length) return { error: '文件里没有可识别的标记记录' };
+
+    var items = [], invalid = 0;
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i] || {};
+      var hid = String(it.hid == null ? '' : it.hid).trim();
+      // 双重把关：既看格式，也要求这家医院真的在当前名单里（挡住旧版本/别人的名单）
+      if (!/^h_[0-9a-zA-Z_-]+$/.test(hid) || !document.getElementById(hid)) { invalid++; continue; }
+      var hasStar = typeof it.star === 'boolean';
+      var hasNote = typeof it.note === 'string';
+      if (!hasStar && !hasNote) { invalid++; continue; }
+      items.push({ hid: hid, star: hasStar ? it.star : null, note: hasNote ? it.note : null });
+    }
+    if (!items.length) {
+      return { error: '没有一条记录能匹配到当前名单里的医院（文件可能来自旧版本名单）' };
+    }
+    return { items: items, invalid: invalid };
+  }
+
+  function applyImportItems(items) {
+    var now = Date.now();
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var cur = marks[it.hid] || { star: false, note: '' };
+      marks[it.hid] = {
+        star: it.star === null ? !!cur.star : !!it.star,
+        note: it.note === null ? (cur.note || '') : it.note,
+        t: now
+      };
+    }
+    writeUserLayer();     // 与默认层一致的条目会在这里被自动剔除
+  }
+
+  function refreshAfterImport() {
+    loadMarks();          // 重新合并（writeUserLayer 可能已剔除若干条）
+    updateAllHospitalUI();
+    updateSidebar();
+    mountDefaultBar();    // 刷新「本机改动 N 条」
+    renderOverview();
+    renderStats();
+  }
+
+  /** 核心入口：无弹窗、无副作用之外的 DOM 更新，返回结果对象 */
+  function importFromText(text) {
+    var parsed = parseImportText(text);
+    if (parsed.error) return { ok: false, error: parsed.error };
+    applyImportItems(parsed.items);
+    refreshAfterImport();
+    return {
+      ok: true,
+      imported: parsed.items.length,
+      invalid: parsed.invalid,
+      total: countUserEdits()
+    };
+  }
+
+  function handleImportText(text) {
+    var parsed = parseImportText(text);
+    if (parsed.error) {
+      alert('导入失败：' + parsed.error + '。\n\n本机数据未做任何改动。');
+      return;
+    }
+    var ask = '本机现有 ' + countUserEdits() + ' 条标记。\n' +
+      '即将导入 ' + parsed.items.length + ' 条：同一家医院以文件内容为准，本机其他标记保留。' +
+      (parsed.invalid ? '\n（另有 ' + parsed.invalid + ' 条无法识别，将跳过）' : '') +
+      '\n\n确定导入吗？';
+    if (!window.confirm(ask)) return;
+    var r = importFromText(text);
+    if (!r.ok) { alert('导入失败：' + r.error); return; }
+    alert('导入完成：' + r.imported + ' 条已合并' +
+      (r.invalid ? '，跳过 ' + r.invalid + ' 条' : '') +
+      '。\n\n本机现在共 ' + r.total + ' 条自己的标记（其余仍为页面内置默认）。');
+  }
+
+  function onImportFileChange(input) {
+    var f = input && input.files && input.files[0];
+    input.value = '';                      // 允许连续导入同一个文件
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () { handleImportText(String(reader.result || '')); };
+    reader.onerror = function () { alert('读取文件失败，请重试。'); };
+    reader.readAsText(f, 'utf-8');
+  }
+
+  function pickImportFile() {
+    var input = document.getElementById('importFile');
+    if (input) input.click();
+  }
+
+  function bindImportInput() {
+    var input = document.getElementById('importFile');
+    if (input) input.addEventListener('change', function () { onImportFileChange(input); });
   }
 
   /* ======================= 搜索框常驻化 ======================= */
@@ -10426,6 +10670,16 @@ $1
   window.searchHospital = searchHospital;
   window.filterByType = filterByType;
   window.restoreDefaults = restoreDefaults;
+  window.exportMarks = exportMarks;
+  window.pickImportFile = pickImportFile;
+
+  /* ---------- 测试钩子（无副作用，供自动化验证导出/导入链路） ---------- */
+  window.__buildExportPayload = buildExportPayload;
+  window.__importFromText = importFromText;
+  window.__countUserEdits = countUserEdits;
+  window.__refreshMarks = function () {
+    loadMarks(); updateAllHospitalUI(); updateSidebar(); mountDefaultBar();
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
