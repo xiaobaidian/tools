@@ -99,6 +99,18 @@
   .card .open .a{transition:transform .2s}
   .card:hover .open .a{transform:translateX(3px)}
 
+  /* ---------- App 下载卡片 ---------- */
+  .card .dl{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--blue);color:#fff;font-size:14.5px;font-weight:600;
+    padding:9px 20px;border-radius:999px;margin-top:2px;
+    transition:background .2s,transform .2s;
+  }
+  .card:hover .dl{background:var(--blue-hover);transform:translateY(-1px)}
+  .card .ver{display:block;margin-top:12px;font-size:12px;color:var(--muted);min-height:16px}
+  .card .plat{display:inline-block;font-size:11px;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:2px 10px;margin-bottom:10px}
+
   /* ---------- Footer ---------- */
   footer{
     background:var(--section);color:var(--muted);font-size:12px;
@@ -125,6 +137,7 @@
     <a href="#cat-image">图片</a>
     <a href="#cat-doc">文档</a>
     <a href="#cat-mail">邮箱</a>
+    <a href="#cat-apps">App</a>
     <a href="#cat-repo">维护</a>
     <a href="https://github.com/xiaobaidian/tools" target="_blank" rel="noopener">GitHub</a>
   </div>
@@ -141,7 +154,41 @@
 </header>
 
 <main class="catalog" id="catalog">
-  <!-- 区块由 tools.json 动态生成 -->
+  <!-- App 下载：固定区块，链接指向各仓库最新 Release -->
+  <section class="cat" id="cat-apps">
+    <div class="cat-head"><h2>App 下载</h2><p>我做的几个小 App，点卡片直接下载最新版安装包</p></div>
+    <div class="grid" id="appsGrid">
+      <a class="card" href="https://github.com/xiaobaidian/hospital-native-apk/releases/download/debug-latest/app-debug.apk" data-repo="hospital-native-apk" data-tag="debug-latest">
+        <div class="ico">📷</div><span class="plat">Android</span>
+        <h3>医院盘库拍照</h3>
+        <div class="desc">拍照记录 + 数量/时间水印，一键微信共享</div>
+        <span class="dl">下载 APK <span class="a">⤓</span></span>
+        <span class="ver"></span>
+      </a>
+      <a class="card" href="https://github.com/xiaobaidian/hospital-udi-scan/releases/download/debug-latest/app-debug.apk" data-repo="hospital-udi-scan" data-tag="debug-latest">
+        <div class="ico">🔍</div><span class="plat">Android</span>
+        <h3>UDI 扫码盘点</h3>
+        <div class="desc">GS1 条码解析 + NMPA 查询 + 盘点导出</div>
+        <span class="dl">下载 APK <span class="a">⤓</span></span>
+        <span class="ver"></span>
+      </a>
+      <a class="card" href="https://github.com/xiaobaidian/hospital-udi-scan/releases/download/win-v1.0/UDIPanDian.exe" data-repo="hospital-udi-scan" data-tag="win-v1.0">
+        <div class="ico">💻</div><span class="plat">Windows</span>
+        <h3>UDI 盘点（桌面版）</h3>
+        <div class="desc">单文件便携 exe，扫码枪 + 批量盘点</div>
+        <span class="dl">下载 EXE <span class="a">⤓</span></span>
+        <span class="ver"></span>
+      </a>
+      <a class="card" href="https://github.com/xiaobaidian/supply-counter/releases/download/supply-latest/app-debug.apk" data-repo="supply-counter" data-tag="supply-latest">
+        <div class="ico">🧮</div><span class="plat">Android</span>
+        <h3>术中耗材统计</h3>
+        <div class="desc">术中不计费耗材快速计数与汇总</div>
+        <span class="dl">下载 APK <span class="a">⤓</span></span>
+        <span class="ver"></span>
+      </a>
+    </div>
+  </section>
+  <!-- 工具区块由 tools.json 动态生成 -->
 </main>
 
 <footer>
@@ -195,6 +242,24 @@ function render(){
   },{threshold:.12});
   document.querySelectorAll(".card").forEach(el=>io.observe(el));
 }
+
+// App 卡片：拉取各 Release 的发布时间标注在卡片上（失败静默）
+document.querySelectorAll("#appsGrid .card").forEach(el=>{
+  const {repo,tag} = el.dataset;
+  fetch(`https://api.github.com/repos/xiaobaidian/${repo}/releases/tags/${tag}`)
+    .then(r=>r.json()).then(d=>{
+      if(!d || !d.published_at) return;
+      const t = new Date(d.published_at);
+      el.querySelector(".ver").textContent =
+        `更新于 ${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+    }).catch(()=>{});
+});
+
+// App 卡片也走滚动渐显
+const appsIO = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("in"); appsIO.unobserve(e.target); } });
+},{threshold:.12});
+document.querySelectorAll("#appsGrid .card").forEach((el,i)=>{ el.style.setProperty("--d", (i*70)+"ms"); appsIO.observe(el); });
 
 let TOOLS = [];
 fetch("./tools.json").then(r=>r.json()).then(d=>{
