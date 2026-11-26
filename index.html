@@ -136,9 +136,7 @@
   <div class="links">
     <a href="#cat-image">图片</a>
     <a href="#cat-doc">文档</a>
-    <a href="#cat-mail">邮箱</a>
     <a href="#cat-apps">App</a>
-    <a href="#cat-repo">维护</a>
     <a href="https://github.com/xiaobaidian/tools" target="_blank" rel="noopener">GitHub</a>
   </div>
 </nav>
@@ -153,8 +151,8 @@
   </div>
 </header>
 
-<main class="catalog" id="catalog">
-  <!-- App 下载：固定区块，链接指向各仓库最新 Release -->
+<div class="catalog">
+  <!-- App 下载：固定区块（独立容器，避免被动态渲染覆盖），链接指向各仓库最新 Release -->
   <section class="cat" id="cat-apps">
     <div class="cat-head"><h2>App 下载</h2><p>我做的几个小 App，点卡片直接下载最新版安装包</p></div>
     <div class="grid" id="appsGrid">
@@ -188,6 +186,9 @@
       </a>
     </div>
   </section>
+</div>
+
+<main class="catalog" id="catalog">
   <!-- 工具区块由 tools.json 动态生成 -->
 </main>
 
@@ -200,8 +201,6 @@
 const CATEGORIES = [
   {key:"image", label:"图片工具",  sub:"本地处理，零依赖，保护隐私"},
   {key:"doc",   label:"文档工具",  sub:"表格与单据，一键生成"},
-  {key:"mail",  label:"邮箱管理",  sub:"收发与管理邮箱的一整套工具"},
-  {key:"repo",  label:"仓库维护",  sub:"工具集自身的维护脚本"},
 ];
 const TYPE = {web:{label:"打开"}, tool:{label:"查看说明"}};
 
